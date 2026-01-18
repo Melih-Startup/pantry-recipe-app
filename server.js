@@ -3,7 +3,8 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const os = require('os');
-const sqlite3 = require('sqlite3').verbose();
+// Database adapter (supports SQLite local, Supabase/Postgres on Vercel)
+const db = require('./db-adapter');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
@@ -17,7 +18,7 @@ const app = express();
 const PORT = 3000;
 const HTTPS_PORT = 3443;
 
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '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';
 const JWT_SECRET = process.env.JWT_SECRET || 'pantry-pal-secret-key-change-in-production';
 
 // OAuth configuration (set via environment variables or use defaults for development)
@@ -65,74 +66,27 @@ if (EMAIL_USER && EMAIL_PASSWORD) {
     console.log('   4. Use that 16-character password (not your regular password)');
 }
 
-// Database setup
-const dbPath = path.join(__dirname, 'pantry_pal.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database:', err);
-    } else {
-        console.log('Connected to SQLite database');
-        // Create users table if it doesn't exist
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT,
-            name TEXT,
-            provider TEXT,
-            provider_id TEXT,
-            is_admin INTEGER DEFAULT 0,
-            email_verified INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(provider, provider_id)
-        )`, (err) => {
-            if (err) {
-                console.error('Error creating users table:', err);
-            } else {
-                console.log('Users table ready');
-                // Add is_admin column if it doesn't exist (for existing databases)
-                db.run(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`, (err) => {
-                    // Ignore error if column already exists
-                });
-                // Add email_verified column if it doesn't exist
-                db.run(`ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`, (err) => {
-                    // Ignore error if column already exists
-                });
-                // Migrate existing users to have NULL provider (for backward compatibility)
-                db.run(`UPDATE users SET provider = NULL, provider_id = NULL WHERE provider IS NULL`, (err) => {
-                    if (err) console.error('Migration error:', err);
-                });
-            }
-        });
-
-        // Create verification codes table
-        db.run(`CREATE TABLE IF NOT EXISTS verification_codes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT NOT NULL,
-            code TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            expires_at DATETIME NOT NULL,
-            used INTEGER DEFAULT 0
-        )`, (err) => {
-            if (err) {
-                console.error('Error creating verification_codes table:', err);
-            } else {
-                console.log('Verification codes table ready');
-            }
-        });
-    }
-});
+// Database is now handled by db-adapter.js
+// It automatically uses Supabase/Postgres if DATABASE_URL is set, otherwise SQLite for local dev
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
 
 // Session configuration
-app.use(session({
+// For Vercel, use memory store (or configure a proper session store like Redis)
+const sessionConfig = {
     secret: JWT_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Set to true in production with HTTPS
+        secure: isVercel ? true : false, // HTTPS required on Vercel
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax'
     }
-}));
+};
+
+// On Vercel, sessions are stateless - consider using JWT tokens only
+// For production, you should use a proper session store (Redis, etc.)
+app.use(session(sessionConfig));
 
 // Initialize Passport
 app.use(passport.initialize());
@@ -214,9 +168,17 @@ function findOrCreateOAuthUser(profile, provider, callback) {
                     db.run(
                         'INSERT INTO users (email, password, name, provider, provider_id, is_admin) VALUES (?, ?, ?, ?, ?, ?)',
                         [email, null, name, provider, providerId, isAdmin ? 1 : 0],
-                        function(err) {
+                        function(err, result) {
                             if (err) return callback(err, null);
-                            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], callback);
+                            // For Postgres, result.rows[0].id contains the inserted ID
+                            // For SQLite, result.lastID contains it
+                            const insertedId = result?.rows?.[0]?.id || result?.lastID;
+                            if (!insertedId) {
+                                // Fallback: query by email
+                                db.get('SELECT * FROM users WHERE email = ?', [email], callback);
+                            } else {
+                                db.get('SELECT * FROM users WHERE id = ?', [insertedId], callback);
+                            }
                         }
                     );
                 }
@@ -1028,11 +990,16 @@ const localIP = getLocalIPAddress();
 
 // Function to generate self-signed certificate for HTTPS (development only)
 function generateSelfSignedCert() {
+    // Don't try to create certs on Vercel (read-only filesystem)
+    if (process.env.VERCEL === '1' || process.env.VERCEL_ENV) {
+        return null;
+    }
+    
     const certDir = path.join(__dirname, 'certs');
     const keyPath = path.join(certDir, 'key.pem');
     const certPath = path.join(certDir, 'cert.pem');
     
-    // Create certs directory if it doesn't exist
+    // Create certs directory if it doesn't exist (only locally)
     if (!fs.existsSync(certDir)) {
         fs.mkdirSync(certDir, { recursive: true });
     }
@@ -1074,50 +1041,56 @@ function generateSelfSignedCert() {
     }
 }
 
-// Start HTTP server (for localhost/desktop)
-const httpServer = http.createServer(app);
-httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🍳 Pantry Recipe App is running!\n`);
-    console.log(`📱 Access from your computer:`);
-    console.log(`   http://localhost:${PORT}\n`);
-    console.log(`📱 Access from mobile devices on same WiFi:`);
-    console.log(`   http://${localIP}:${PORT}\n`);
-    console.log(`💡 Make sure your phone/tablet is on the same WiFi network!\n`);
-});
-
-// Try to start HTTPS server (for mobile camera access)
-const sslCert = generateSelfSignedCert();
-if (sslCert) {
-    const httpsServer = https.createServer(sslCert, app);
-    httpsServer.on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-            console.log(`\n⚠️  HTTPS port ${HTTPS_PORT} is already in use.`);
-            console.log(`   Please stop the other application or change HTTPS_PORT in server.js\n`);
-        } else {
-            console.log(`\n❌ HTTPS server error: ${err.message}\n`);
-        }
-    });
-    httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
-        console.log(`\n🔒 HTTPS Server is running! (Required for mobile camera access)\n`);
+// Only start server if running directly (not as a module for Vercel)
+if (require.main === module) {
+    // Start HTTP server (for localhost/desktop)
+    const httpServer = http.createServer(app);
+    httpServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`\n🍳 Pantry Recipe App is running!\n`);
         console.log(`📱 Access from your computer:`);
-        console.log(`   https://localhost:${HTTPS_PORT}\n`);
+        console.log(`   http://localhost:${PORT}\n`);
         console.log(`📱 Access from mobile devices on same WiFi:`);
-        console.log(`   https://${localIP}:${HTTPS_PORT}\n`);
-        console.log(`⚠️  Your browser will show a security warning for self-signed certificates.`);
-        console.log(`   Click "Advanced" → "Proceed to ${localIP}" (or similar) to continue.\n`);
+        console.log(`   http://${localIP}:${PORT}\n`);
+        console.log(`💡 Make sure your phone/tablet is on the same WiFi network!\n`);
     });
-} else {
-    console.log(`\n⚠️  HTTPS not available. Mobile camera access requires HTTPS.`);
-    console.log(`   Please run generate-cert.bat or generate-cert.ps1 to create certificates.\n`);
+
+    // Try to start HTTPS server (for mobile camera access)
+    const sslCert = generateSelfSignedCert();
+    if (sslCert) {
+        const httpsServer = https.createServer(sslCert, app);
+        httpsServer.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.log(`\n⚠️  HTTPS port ${HTTPS_PORT} is already in use.`);
+                console.log(`   Please stop the other application or change HTTPS_PORT in server.js\n`);
+            } else {
+                console.log(`\n❌ HTTPS server error: ${err.message}\n`);
+            }
+        });
+        httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+            console.log(`\n🔒 HTTPS Server is running! (Required for mobile camera access)\n`);
+            console.log(`📱 Access from your computer:`);
+            console.log(`   https://localhost:${HTTPS_PORT}\n`);
+            console.log(`📱 Access from mobile devices on same WiFi:`);
+            console.log(`   https://${localIP}:${HTTPS_PORT}\n`);
+            console.log(`⚠️  Your browser will show a security warning for self-signed certificates.`);
+            console.log(`   Click "Advanced" → "Proceed to ${localIP}" (or similar) to continue.\n`);
+        });
+    } else {
+        console.log(`\n⚠️  HTTPS not available. Mobile camera access requires HTTPS.`);
+        console.log(`   Please run generate-cert.bat or generate-cert.ps1 to create certificates.\n`);
+    }
+
+    console.log(`🔐 ADMIN MODE ENABLED (Testing)`);
+    if (ADMIN_EMAIL) {
+        console.log(`   Only this email can sign up: ${ADMIN_EMAIL}`);
+        console.log(`   Set ADMIN_EMAIL environment variable to change it.\n`);
+    } else {
+        console.log(`   First email to sign up will become the admin account.`);
+        console.log(`   Set ADMIN_EMAIL environment variable to restrict to a specific email.\n`);
+    }
+    console.log(`📧 Email Status: ${emailTransporter ? '✅ Configured' : '⚠️  Not configured (Development Mode - codes will show in console)'}\n`);
+    console.log(`🔍 Server is listening for requests...\n`);
 }
 
-console.log(`🔐 ADMIN MODE ENABLED (Testing)`);
-if (ADMIN_EMAIL) {
-    console.log(`   Only this email can sign up: ${ADMIN_EMAIL}`);
-    console.log(`   Set ADMIN_EMAIL environment variable to change it.\n`);
-} else {
-    console.log(`   First email to sign up will become the admin account.`);
-    console.log(`   Set ADMIN_EMAIL environment variable to restrict to a specific email.\n`);
-}
-console.log(`📧 Email Status: ${emailTransporter ? '✅ Configured' : '⚠️  Not configured (Development Mode - codes will show in console)'}\n`);
-console.log(`🔍 Server is listening for requests...\n`);
+// Export app for Vercel serverless functions
+module.exports = app;
