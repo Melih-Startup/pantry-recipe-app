@@ -1,0 +1,70 @@
+═══════════════════════════════════════════════════════════════
+  NEXT STEPS AFTER INSTALLING NODE.JS
+═══════════════════════════════════════════════════════════════
+
+You've downloaded Node.js - great! Now follow these steps:
+
+STEP 1: Restart Your Terminal/Command Prompt
+──────────────────────────────────────────────
+✓ Close ALL open Command Prompt, PowerShell, or Terminal windows
+✓ If you're using VS Code or another editor, close and reopen it
+✓ OR restart your computer (this always works)
+
+STEP 2: Verify Node.js is Working
+──────────────────────────────────
+1. Open a NEW Command Prompt or PowerShell window
+2. Type: node --version
+3. You should see something like: v20.x.x or v18.x.x
+4. Type: npm --version
+5. You should see something like: 10.x.x or 9.x.x
+
+If you still get "not recognized" errors:
+→ Restart your computer completely
+→ Or check if Node.js was installed correctly (re-run the installer)
+
+STEP 3: Install Project Dependencies (One-Time Setup)
+────────────────────────────────────────────────────────
+1. Open Command Prompt or PowerShell in the project folder
+   (Navigate to: c:\Users\melih\Downloads\pantry-recipe-app)
+   
+2. Type this command and press Enter:
+   npm install
+
+3. Wait for it to finish (it will download required packages)
+
+STEP 4: Start the Server
+─────────────────────────
+Now you can start the server using any of these methods:
+
+METHOD A - Using npm (Recommended):
+   npm start
+
+METHOD B - Using the batch file:
+   Double-click: start-server.bat
+
+METHOD C - Direct node command:
+   node server.js
+
+STEP 5: Open Your Browser
+─────────────────────────
+Once the server starts, you'll see:
+   "🍳 Pantry Recipe App running at http://localhost:3000"
+
+Open your browser and go to:
+   http://localhost:3000
+
+═══════════════════════════════════════════════════════════════
+  QUICK CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+□ Installed Node.js from nodejs.org
+□ Restarted terminal/command prompt (or computer)
+□ Verified: node --version works
+□ Verified: npm --version works
+□ Ran: npm install (in the project folder)
+□ Started server: npm start
+□ Opened browser: http://localhost:3000
+
+═══════════════════════════════════════════════════════════════
+
+

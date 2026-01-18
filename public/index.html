@@ -1,0 +1,5073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover, shrink-to-fit=no">
+    <title>Pantry Pal - Your Recipe Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+            background: linear-gradient(135deg, #fff5f5 0%, #fff7ed 50%, #fef3c7 100%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+            position: relative;
+            color: #2d3748;
+            -webkit-text-size-adjust: 100%; /* Prevent iOS text size adjustment */
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+            opacity: 0.08;
+            background-image: 
+                radial-gradient(circle at 20% 50%, #dc2626 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, #fbbf24 0%, transparent 60%),
+                radial-gradient(circle at 40% 20%, #ea580c 0%, transparent 60%),
+                radial-gradient(circle at 60% 40%, #f59e0b 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        header p {
+            font-size: 1.05rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .welcome-title {
+            font-size: 7rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 24px;
+            letter-spacing: -2px;
+            animation: fadeInDown 1s ease-out 0.2s both;
+            line-height: 1.1;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 500;
+            margin-bottom: 80px;
+            max-width: 600px;
+            line-height: 1.6;
+            animation: fadeInUp 1s ease-out 0.4s both;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Full-screen camera view */
+        .scan-camera-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            /* Support for devices with notches */
+            top: env(safe-area-inset-top, 0);
+            bottom: env(safe-area-inset-bottom, 0);
+            left: env(safe-area-inset-left, 0);
+            right: env(safe-area-inset-right, 0);
+        }
+
+        .scan-camera-fullscreen.show {
+            display: flex;
+        }
+
+        .scan-camera-fullscreen video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scan-camera-fullscreen .scan-camera-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3001;
+        }
+
+        .scan-camera-controls-fullscreen {
+            position: absolute;
+            bottom: calc(40px + env(safe-area-inset-bottom, 0));
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 3001;
+            align-items: center;
+            width: 100%;
+            max-width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .scan-capture-btn-fullscreen {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 5px solid white;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+
+        .scan-capture-btn-fullscreen:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .scan-capture-btn-fullscreen:active {
+            transform: scale(0.95);
+        }
+
+        .scan-reset-btn-fullscreen {
+            padding: 14px 28px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            backdrop-filter: blur(10px);
+        }
+
+        .scan-reset-btn-fullscreen:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .scan-close-btn-fullscreen {
+            position: absolute;
+            top: calc(20px + env(safe-area-inset-top, 0));
+            right: calc(20px + env(safe-area-inset-right, 0));
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 3001;
+            backdrop-filter: blur(10px);
+            min-width: 44px; /* Minimum touch target size */
+            min-height: 44px;
+        }
+
+        .scan-close-btn-fullscreen:hover {
+            background: rgba(0, 0, 0, 0.7);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: rotate(90deg);
+        }
+
+        /* Full-screen scan preview styles */
+        .scan-preview-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scan-preview-fullscreen.show {
+            display: flex;
+        }
+
+        .scan-preview-fullscreen img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .scan-preview-controls {
+            position: absolute;
+            bottom: calc(40px + env(safe-area-inset-bottom, 0));
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 3001;
+            width: 100%;
+            max-width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .scan-control-btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .scan-return-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .scan-return-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .scan-retake-btn-fullscreen {
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            color: white;
+        }
+
+        .scan-retake-btn-fullscreen:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 40px;
+            border: 2px solid transparent;
+            background-image: linear-gradient(#ffffff, #ffffff), 
+                              linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.15), 0 2px 8px rgba(234, 88, 12, 0.1);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 30px rgba(220, 38, 38, 0.25), 0 4px 12px rgba(234, 88, 12, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .input-section {
+            margin-bottom: 24px;
+        }
+
+        .input-section label {
+            display: block;
+            font-size: 0.875rem;
+            color: #475569;
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .input-section textarea,
+        .input-section input {
+            width: 100%;
+            padding: 14px 16px;
+            background: linear-gradient(to bottom, #ffffff 0%, #fff7ed 100%);
+            border: 2px solid transparent;
+            background-image: linear-gradient(#fff7ed, #fff7ed), 
+                              linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            color: #212529;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+
+        .input-section textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .input-section textarea::placeholder,
+        .input-section input::placeholder {
+            color: #c2410c;
+            opacity: 0.6;
+        }
+
+        .input-section textarea:focus,
+        .input-section input:focus {
+            outline: none;
+            background-image: linear-gradient(#ffffff, #ffffff), 
+                              linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15), 
+                        0 0 0 6px rgba(234, 88, 12, 0.1),
+                        0 4px 12px rgba(251, 191, 36, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .context-box {
+            background: linear-gradient(135deg, #fff5f5 0%, #fff7ed 100%);
+            border: 2px solid transparent;
+            background-image: linear-gradient(#fff7ed, #fff7ed), 
+                              linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+        }
+
+        .context-box label {
+            color: #495057;
+        }
+
+        .context-box input {
+            background: white;
+            border-color: #dee2e6;
+        }
+
+        .quick-options {
+            margin-bottom: 24px;
+        }
+
+        .quick-options-title {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .options-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .options-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .option-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            min-width: 70px;
+            padding-top: 8px;
+            font-weight: 500;
+        }
+
+        .option-btn {
+            background: #ffffff;
+            color: #495057;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1.5px solid #f1f3f5;
+            font-family: inherit;
+        }
+
+        .option-btn:hover {
+            background: #f8f9fa;
+            border-color: #e9ecef;
+        }
+
+        .option-btn.selected {
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3), 0 2px 6px rgba(234, 88, 12, 0.2);
+        }
+
+        .common-items {
+            margin-bottom: 24px;
+        }
+
+        .common-items p {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 12px;
+        }
+
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            background: #ffffff;
+            color: #495057;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1.5px solid #dee2e6;
+            font-family: inherit;
+        }
+
+        .tag:hover {
+            transform: translateY(-1px);
+            border-color: #adb5bd;
+            background: #f8f9fa;
+        }
+
+        .tag.selected {
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3), 0 2px 6px rgba(234, 88, 12, 0.2);
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 12px rgba(220, 38, 38, 0.25);
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.35);
+        }
+
+        .generate-btn:hover::before {
+            left: 100%;
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .spinner-dot {
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, #dc2626, #ea580c);
+            border-radius: 50%;
+            animation: bounce 1.4s ease-in-out infinite;
+        }
+
+        .spinner-dot:nth-child(1) { animation-delay: 0s; }
+        .spinner-dot:nth-child(2) { animation-delay: 0.2s; }
+        .spinner-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .loading p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+        }
+
+        .result {
+            margin-top: 35px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .result.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .result h2 {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            word-wrap: break-word;
+        }
+
+        @media (max-width: 768px) {
+            .result {
+                margin-top: 24px;
+            }
+
+            .result-header {
+                margin-bottom: 16px;
+                padding-bottom: 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .result h2 {
+                font-size: 1.2rem;
+            }
+        }
+
+        .result h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #dc2626, #ea580c);
+            border-radius: 2px;
+        }
+
+        .recipe-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .recipe-images {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+        }
+
+        .recipe-image-card {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            animation: fadeInScale 0.5s ease-out both;
+        }
+
+        .recipe-image-card:nth-child(1) { animation-delay: 0.1s; }
+        .recipe-image-card:nth-child(2) { animation-delay: 0.2s; }
+        .recipe-image-card:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .recipe-image-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .recipe-image-card:hover img {
+            transform: scale(1.05);
+        }
+
+        .recipe-image-card .image-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .recipe-content {
+            color: #334155;
+            line-height: 1.8;
+            font-size: 0.95rem;
+            width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        }
+
+        .recipe-content h1, .recipe-content h2, .recipe-content h3 {
+            color: #1a202c;
+            margin: 25px 0 12px;
+            font-weight: 700;
+            word-wrap: break-word;
+        }
+
+        .recipe-content h1 { font-size: 1.5rem; }
+        .recipe-content h2 { font-size: 1.3rem; color: #1e40af; }
+        .recipe-content h3 { font-size: 1.1rem; color: #059669; }
+
+        @media (max-width: 768px) {
+            .recipe-content {
+                font-size: 0.9rem;
+                line-height: 1.7;
+            }
+
+            .recipe-content h1 { font-size: 1.3rem; }
+            .recipe-content h2 { font-size: 1.15rem; }
+            .recipe-content h3 { font-size: 1rem; }
+        }
+
+        .recipe-header-with-image {
+            margin: 30px 0 20px;
+            animation: fadeInUp 0.6s ease-out;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .recipe-header-with-image.sub-recipe {
+            margin: 25px 0 15px;
+        }
+
+        .recipe-header-with-image h2,
+        .recipe-header-with-image h3 {
+            margin-bottom: 15px;
+            word-wrap: break-word;
+        }
+
+        @media (max-width: 768px) {
+            .recipe-header-with-image {
+                margin: 24px 0 16px;
+            }
+
+            .recipe-header-with-image.sub-recipe {
+                margin: 20px 0 12px;
+            }
+
+            .recipe-header-with-image h2,
+            .recipe-header-with-image h3 {
+                margin-bottom: 12px;
+            }
+        }
+
+        .inline-recipe-image {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 16px;
+            margin: 15px 0 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e2e8f0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: block;
+        }
+
+        .inline-recipe-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px rgba(220, 38, 38, 0.2);
+        }
+
+        .inline-recipe-image.sub-image {
+            max-width: 500px;
+            height: 350px;
+        }
+
+        @media (max-width: 768px) {
+            .inline-recipe-image {
+                max-width: 100%;
+                height: 250px;
+                margin: 12px 0 16px;
+                border-radius: 12px;
+            }
+
+            .inline-recipe-image.sub-image {
+                max-width: 100%;
+                height: 220px;
+            }
+        }
+
+        .recipe-content strong {
+            color: #1a202c;
+            font-weight: 600;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 2px solid #fecaca;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            font-size: 0.9rem;
+        }
+
+        .error.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .budget-section {
+            margin-bottom: 24px;
+        }
+
+        .budget-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            background: #ffffff;
+            border: 1.5px solid #dee2e6;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #495057;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .budget-toggle:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        .budget-toggle.active {
+            background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+            border: 2px solid transparent;
+            background-image: linear-gradient(#fff7ed, #fff7ed), 
+                              linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            color: #dc2626;
+        }
+
+        .toggle-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            border-radius: 8px;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+        }
+
+        .toggle-arrow {
+            margin-left: auto;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .budget-toggle.active .toggle-arrow {
+            transform: rotate(45deg);
+        }
+
+        .budget-input-wrapper {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+        }
+
+        .budget-input-wrapper.show {
+            max-height: 120px;
+            opacity: 1;
+            margin-top: 12px;
+        }
+
+        .budget-input-group {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1.5px solid #dee2e6;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .budget-input-group:focus-within {
+            border: 2px solid transparent;
+            background-image: linear-gradient(#ffffff, #ffffff), 
+                              linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15), 
+                        0 0 0 6px rgba(234, 88, 12, 0.1),
+                        0 4px 12px rgba(251, 191, 36, 0.2);
+            background: white;
+        }
+
+        .currency-symbol {
+            padding: 14px 0 14px 16px;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .budget-input-group input {
+            flex: 1;
+            padding: 14px 16px 14px 8px;
+            background: transparent;
+            border: none;
+            color: #1a202c;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .budget-input-group input:focus {
+            outline: none;
+        }
+
+        .budget-input-group input::placeholder {
+            color: #94a3b8;
+        }
+
+        .budget-hint {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 8px;
+            padding-left: 4px;
+        }
+
+        .reviews-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .reviews-header {
+            margin-bottom: 24px;
+        }
+
+        .reviews-header h2 {
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .reviews-header h2::before {
+            content: '';
+            width: 4px;
+            height: 22px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 2px;
+        }
+
+        .reviews-header p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+            margin-left: 14px;
+        }
+
+        .reviews-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .dish-reviews {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            animation: fadeInUp 0.5s ease-out both;
+        }
+
+        .dish-reviews:nth-child(1) { animation-delay: 0.1s; }
+        .dish-reviews:nth-child(2) { animation-delay: 0.2s; }
+        .dish-reviews:nth-child(3) { animation-delay: 0.3s; }
+
+        .dish-reviews-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .dish-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .dish-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stars {
+            display: flex;
+            gap: 2px;
+        }
+
+        .star {
+            color: #fbbf24;
+            font-size: 1rem;
+        }
+
+        .star.empty {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .star.half {
+            position: relative;
+        }
+
+        .rating-text {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .rating-number {
+            font-weight: 600;
+            color: #fbbf24;
+        }
+
+        .total-reviews {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .reviews-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .review-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            padding: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .review-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .reviewer-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reviewer-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #dc2626, #ea580c);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .reviewer-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .review-date {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .review-stars {
+            display: flex;
+            gap: 2px;
+        }
+
+        .review-stars .star {
+            font-size: 0.8rem;
+        }
+
+        .review-comment {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .review-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .review-source {
+            background: rgba(220, 38, 38, 0.15);
+            color: rgba(234, 88, 12, 0.9);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+
+        .helpful-count {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .insights-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .insight-box {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .insight-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 8px;
+        }
+
+        .insight-title.praise { color: rgba(251, 191, 36, 0.8); }
+        .insight-title.criticism { color: rgba(251, 191, 36, 0.8); }
+        .insight-title.tips { color: rgba(168, 237, 234, 0.8); }
+
+        .insight-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .insight-tag {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .insight-tag.praise { background: rgba(251, 191, 36, 0.1); color: rgba(251, 191, 36, 0.9); }
+        .insight-tag.criticism { background: rgba(251, 191, 36, 0.1); color: rgba(251, 191, 36, 0.9); }
+        .insight-tag.tips { background: rgba(168, 237, 234, 0.1); color: rgba(168, 237, 234, 0.9); }
+
+        .reviews-loading {
+            text-align: center;
+            padding: 30px;
+            display: none;
+        }
+
+        .reviews-loading.show {
+            display: block;
+        }
+
+        .reviews-loading p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .source-badge {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: auto;
+        }
+
+        /* Chatbot Styles */
+        .chat-widget {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: none; /* Hidden by default on welcome page */
+        }
+
+        .chat-widget.show {
+            display: block; /* Show on text and scan pages */
+        }
+
+        .chat-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 8px 32px rgba(220, 38, 38, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .chat-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(220, 38, 38, 0.5);
+        }
+
+        .chat-icon, .close-icon {
+            font-size: 1.5rem;
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+
+        .close-icon {
+            opacity: 0;
+            transform: rotate(-90deg) scale(0.5);
+            color: white;
+            font-size: 1.3rem;
+        }
+
+        .chat-toggle.active .chat-icon {
+            opacity: 0;
+            transform: rotate(90deg) scale(0.5);
+        }
+
+        .chat-toggle.active .close-icon {
+            opacity: 1;
+            transform: rotate(0) scale(1);
+        }
+
+        .chat-window {
+            position: absolute;
+            bottom: 75px;
+            right: 0;
+            width: 380px;
+            height: 500px;
+            background: rgba(22, 33, 62, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .chat-window.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        .chat-header {
+            padding: 18px 20px;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.3), rgba(234, 88, 12, 0.3));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #dc2626, #ea580c);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .chat-title {
+            font-weight: 600;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .chat-status {
+            font-size: 0.75rem;
+            color: rgba(234, 88, 12, 0.8);
+        }
+
+        .chat-clear-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: auto;
+        }
+
+        .chat-clear-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 10px;
+            animation: messageIn 0.3s ease-out;
+        }
+
+        @keyframes messageIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #dc2626, #ea580c);
+        }
+
+        .chat-message.user .message-avatar {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .message-content p {
+            margin: 0;
+        }
+
+        .chat-message.user .message-content {
+            background: linear-gradient(135deg, #dc2626, #ea580c);
+            color: white;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            color: #fff;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input-area input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .chat-input-area input:focus {
+            outline: none;
+            border-color: rgba(220, 38, 38, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-send {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #dc2626, #ea580c);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        .chat-send:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+        }
+
+        .chat-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Welcome Page Styles */
+        .welcome-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .welcome-page.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-20px);
+        }
+
+        .welcome-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 700px;
+            width: 100%;
+            animation: fadeInUp 1s ease-out 0.6s both;
+        }
+
+        .welcome-option-btn {
+            padding: 28px 36px;
+            background: #ffffff;
+            color: #1a202c;
+            border: 2px solid transparent;
+            background-image: linear-gradient(#ffffff, #ffffff), 
+                              linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #fbbf24 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.15), 0 2px 8px rgba(234, 88, 12, 0.1);
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .welcome-option-btn.scan-btn {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .scan-btn-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .scan-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .welcome-option-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #dc2626, #fbbf24);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .welcome-option-btn.scan-btn::before {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+        }
+
+        .welcome-option-btn.text-btn::before {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        }
+
+        .welcome-option-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(220, 38, 38, 0.25), 0 4px 12px rgba(234, 88, 12, 0.2);
+        }
+
+        .welcome-option-btn:hover::before {
+            transform: scaleX(1);
+        }
+
+        .welcome-option-btn.scan-btn:hover {
+            background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+        }
+
+        .welcome-option-btn.text-btn:hover {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        }
+
+        .welcome-option-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .welcome-option-btn.scan-btn:hover {
+            box-shadow: 0 15px 40px rgba(220, 38, 38, 0.5);
+        }
+
+        .welcome-option-btn.text-btn:hover {
+            box-shadow: 0 15px 40px rgba(220, 38, 38, 0.5);
+        }
+
+        .welcome-option-btn:hover::before {
+            left: 100%;
+        }
+
+        .welcome-option-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        /* Scan Modal Styles */
+        .scan-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .scan-modal.show {
+            display: flex;
+        }
+
+        .scan-modal-content {
+            background: #ffffff;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .scan-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 28px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .scan-modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 0;
+        }
+
+        .scan-modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .scan-modal-close:hover {
+            background: #f8f9fa;
+            color: #1a202c;
+        }
+
+        .scan-modal-body {
+            padding: 28px;
+        }
+
+        .scan-camera-area {
+            min-height: 400px;
+            position: relative;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .scan-camera-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            min-height: 400px;
+            text-align: center;
+        }
+
+        .scan-camera-placeholder p {
+            margin-top: 20px;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        #scanVideo {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: cover;
+        }
+
+        .scan-camera-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+        }
+
+        .scan-capture-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+
+        .scan-capture-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .scan-capture-btn:active {
+            transform: scale(0.95);
+        }
+
+        .scan-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .scan-error p {
+            color: #dc2626;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .scan-retry-btn {
+            padding: 12px 28px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .scan-retry-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .scan-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .scan-preview img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+        }
+
+        .scan-preview-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .scan-retake-btn,
+        .scan-submit-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .scan-retake-btn {
+            background: #f8f9fa;
+            color: #495057;
+            border: 1.5px solid #dee2e6;
+        }
+
+        .scan-retake-btn:hover {
+            background: #e9ecef;
+        }
+
+        .scan-submit-btn {
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            color: white;
+        }
+
+        .scan-submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .scan-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .scan-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .scan-loading p {
+            margin-top: 20px;
+            color: #495057;
+            font-size: 1rem;
+        }
+
+        .recipe-generator {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+            width: 100%;
+            max-width: 900px;
+            margin: 40px auto 0;
+            padding: 0 20px;
+        }
+
+        .recipe-generator.show {
+            display: block;
+        }
+
+        .recipe-generator.show ~ .welcome-title,
+        .recipe-generator.show ~ .welcome-subtitle {
+            display: none;
+        }
+
+        .welcome-page:has(.recipe-generator.show) .welcome-title,
+        .welcome-page:has(.recipe-generator.show) .welcome-subtitle {
+            display: none;
+        }
+
+        .recipe-generator .container {
+            padding-top: 80px;
+        }
+
+        .welcome-options.hidden {
+            display: none;
+        }
+
+        /* Authentication Screen Styles */
+        .auth-screen {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-screen.hidden {
+            display: none;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Homepage Styles */
+        .homepage-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+            min-height: calc(100vh - 56px);
+            min-height: calc(100dvh - 56px);
+            justify-content: flex-start;
+            overflow-x: hidden;
+        }
+
+        .main-food-image {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            margin: 0;
+        }
+
+        .homepage-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            align-items: center;
+        }
+
+        .homepage-headline {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            line-height: 1.3;
+            margin: 0;
+            padding: 0;
+        }
+
+        .homepage-headline .highlight {
+            color: #FF6B35;
+            font-weight: 800;
+        }
+
+        .homepage-description {
+            font-size: 1.05rem;
+            color: #666;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .get-started-btn {
+            padding: 16px 32px;
+            border-radius: 28px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            border: none;
+            background: #FF6B35;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            min-width: 200px;
+            margin-top: 8px;
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+        }
+
+        .get-started-btn:hover {
+            background: #FF5722;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .get-started-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+        }
+
+        @media (min-width: 768px) {
+            .homepage-container {
+                padding: 100px 40px 80px;
+                gap: 40px;
+            }
+
+            .main-food-image {
+                max-width: 700px;
+            }
+
+            .homepage-headline {
+                font-size: 2.5rem;
+            }
+
+            .homepage-description {
+                font-size: 1.15rem;
+            }
+
+            .get-started-btn {
+                padding: 18px 40px;
+                font-size: 1.2rem;
+                min-width: 220px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .homepage-container {
+                padding: 80px 16px 80px;
+                gap: 32px;
+            }
+
+            .homepage-headline {
+                font-size: 2.2rem;
+            }
+
+            .homepage-description {
+                font-size: 1.1rem;
+            }
+
+            .get-started-btn {
+                padding: 18px 36px;
+                font-size: 1.15rem;
+                min-width: 180px;
+            }
+
+            .main-food-image {
+                border-radius: 16px;
+            }
+
+            .top-nav {
+                padding: 12px 16px;
+            }
+
+            .nav-logo {
+                font-size: 1.3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .homepage-container {
+                padding: 70px 12px 80px;
+                gap: 28px;
+            }
+
+            .homepage-headline {
+                font-size: 1.8rem;
+                line-height: 1.3;
+            }
+
+            .homepage-description {
+                font-size: 1rem;
+            }
+
+            .get-started-btn {
+                padding: 16px 32px;
+                font-size: 1.05rem;
+                min-width: 160px;
+            }
+
+            .main-food-image {
+                border-radius: 14px;
+            }
+        }
+
+        .auth-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            letter-spacing: -2px;
+            animation: fadeInDown 1s ease-out 0.2s both;
+            line-height: 1.1;
+        }
+
+        .auth-subtitle {
+            font-size: 1.3rem;
+            color: #64748b;
+            margin-bottom: 48px;
+            animation: fadeInDown 1s ease-out 0.4s both;
+            font-weight: 400;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease-out 0.6s both;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .auth-btn {
+            flex: 1;
+            min-width: 180px;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.3);
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(220, 38, 38, 0.4);
+        }
+
+        .auth-btn.secondary {
+            background: #ffffff;
+            color: #dc2626;
+            border: 2px solid #dc2626;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.15);
+        }
+
+        .auth-btn.secondary:hover {
+            background: #fff5f5;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+            position: relative;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 30px;
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #94a3b8;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #334155;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .form-error {
+            color: #dc2626;
+            font-size: 0.85rem;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .form-error.show {
+            display: block;
+        }
+
+        .form-input.error {
+            border-color: #dc2626;
+            background-color: #fef2f2;
+        }
+
+        .form-error.show.password-mismatch {
+            background: #fef2f2;
+            border: 2px solid #dc2626;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .form-success {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-top: 16px;
+            display: none;
+            color: #16a34a;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .form-success.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            margin-top: 8px;
+        }
+
+        .modal-submit-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .modal-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .modal-footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .modal-footer a {
+            color: #dc2626;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .modal-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Social Login Styles */
+        .social-login {
+            margin-bottom: 24px;
+        }
+
+        .social-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 24px 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .social-divider::before,
+        .social-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .social-divider::before {
+            margin-right: 12px;
+        }
+
+        .social-divider::after {
+            margin-left: 12px;
+        }
+
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            color: #334155;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            text-decoration: none;
+        }
+
+        .social-btn:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .social-btn.google {
+            border-color: #ea4335;
+            color: #ea4335;
+        }
+
+        .social-btn.google:hover {
+            background: #fef2f2;
+            border-color: #ea4335;
+        }
+
+        .social-btn.facebook {
+            border-color: #1877f2;
+            color: #1877f2;
+        }
+
+        .social-btn.facebook:hover {
+            background: #eff6ff;
+            border-color: #1877f2;
+        }
+
+        .social-btn.github {
+            border-color: #333;
+            color: #333;
+        }
+
+        .social-btn.github:hover {
+            background: #f1f5f9;
+            border-color: #333;
+        }
+
+        .social-btn-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .social-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 16px 20px;
+            z-index: 1000;
+            display: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-bar.show {
+            display: block;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-home-btn {
+            padding: 10px 18px;
+            background: #ffffff;
+            border: 1.5px solid #dee2e6;
+            border-radius: 10px;
+            color: #495057;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-home-btn:hover {
+            background: #f8f9fa;
+            border-color: #dc2626;
+            color: #dc2626;
+            transform: translateX(-2px);
+        }
+
+        .welcome-logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            z-index: 10;
+        }
+
+        .welcome-logout-btn:hover {
+            background: #f8f9fa;
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            .welcome-page {
+                padding: 30px 15px;
+                min-height: 100vh;
+                min-height: 100dvh;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .welcome-title {
+                font-size: 3rem;
+                margin-bottom: 20px;
+                letter-spacing: -1px;
+                line-height: 1.1;
+                width: 100%;
+                padding: 0 10px;
+                box-sizing: border-box;
+            }
+            
+            .welcome-subtitle {
+                font-size: 1.2rem;
+                margin-bottom: 50px;
+                width: 100%;
+                padding: 0 10px;
+                box-sizing: border-box;
+                padding: 0 10px;
+            }
+            
+            .welcome-options {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                max-width: 100%;
+                width: 100%;
+            }
+            
+            .welcome-option-btn {
+                width: 100%;
+                padding: 24px 28px;
+                min-height: 80px;
+            }
+
+            .scan-btn-content {
+                gap: 4px;
+            }
+
+            /* Full-screen camera tablet adjustments */
+            .scan-camera-controls-fullscreen {
+                bottom: 35px;
+            }
+
+            .scan-preview-controls {
+                bottom: 35px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container { 
+                padding: 20px 15px; 
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .welcome-title { font-size: 2.5rem; }
+            .welcome-subtitle { font-size: 1.1rem; margin-bottom: 40px; }
+            .welcome-options { 
+                flex-direction: column; 
+                align-items: stretch; 
+                width: 100%;
+                gap: 16px;
+            }
+            .welcome-option-btn { 
+                width: 100%; 
+                max-width: 100%; 
+                padding: 20px 24px; 
+            }
+            header h1 { font-size: 2.2rem; }
+            .card { 
+                padding: 25px 20px; 
+                border-radius: 16px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .tag, .option-btn { padding: 8px 14px; font-size: 0.8rem; }
+            .recipe-images { grid-template-columns: 1fr; gap: 12px; }
+            .dish-reviews-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .recipe-generator .container {
+                padding-top: 60px;
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+
+            .recipe-generator .card {
+                padding: 25px 20px;
+            }
+
+            .chat-widget { bottom: 16px; right: 16px; }
+            .chat-window {
+                width: calc(100vw - 32px);
+                height: 60vh;
+                right: -8px;
+            }
+
+            /* Full-screen camera mobile styles */
+            .scan-camera-controls-fullscreen {
+                bottom: calc(30px + env(safe-area-inset-bottom, 0));
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+                padding: 0 20px;
+            }
+
+            .scan-capture-btn-fullscreen {
+                width: 80px;
+                height: 80px;
+                border-width: 4px;
+            }
+
+            .scan-reset-btn-fullscreen {
+                padding: 12px 24px;
+                font-size: 0.9rem;
+                min-height: 44px;
+            }
+
+            .scan-close-btn-fullscreen {
+                top: calc(15px + env(safe-area-inset-top, 0));
+                right: calc(15px + env(safe-area-inset-right, 0));
+                width: 48px;
+                height: 48px;
+                font-size: 1.8rem;
+            }
+
+            .scan-camera-fullscreen .scan-camera-placeholder {
+                padding: 20px;
+                max-width: 90%;
+            }
+
+            .scan-camera-fullscreen .scan-camera-placeholder p {
+                font-size: 0.9rem !important;
+                line-height: 1.4;
+            }
+
+            .scan-error {
+                padding: 20px !important;
+                max-width: 85% !important;
+            }
+
+            .scan-error p {
+                font-size: 0.9rem !important;
+            }
+
+            /* Preview controls mobile */
+            .scan-preview-controls {
+                bottom: calc(30px + env(safe-area-inset-bottom, 0));
+                gap: 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+                padding: 0 20px;
+            }
+
+            .scan-control-btn {
+                padding: 14px 24px;
+                font-size: 0.9rem;
+                min-height: 44px;
+            }
+
+            /* Welcome page mobile adjustments */
+            .scan-btn-content span:first-child {
+                font-size: 1.1rem !important;
+            }
+
+            .scan-btn-content span:last-child {
+                font-size: 0.8rem !important;
+            }
+
+            .scan-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .scan-icon svg {
+                width: 40px;
+                height: 40px;
+            }
+
+            /* Recipe generator mobile */
+            .input-section {
+                margin-bottom: 20px;
+            }
+
+            .input-section label {
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+
+            .input-section input,
+            .input-section textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 14px 16px;
+                border-radius: 12px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .input-section textarea {
+                min-height: 120px;
+                line-height: 1.5;
+                resize: vertical;
+            }
+
+            .context-box {
+                padding: 16px;
+                margin-bottom: 20px;
+                border-radius: 12px;
+            }
+
+            .context-box .input-section {
+                margin-bottom: 0;
+            }
+
+            .context-box label {
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+
+            .quick-options {
+                margin-bottom: 20px;
+            }
+
+            .quick-options-title {
+                font-size: 0.75rem;
+                margin-bottom: 16px;
+            }
+
+            .quick-options .input-section {
+                margin-bottom: 16px;
+            }
+
+            .options-row {
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+
+            .option-label {
+                min-width: auto;
+                padding-top: 0;
+                margin-bottom: 6px;
+                font-size: 0.85rem;
+            }
+
+            .option-btn {
+                min-height: 44px;
+                padding: 12px 18px;
+                font-size: 0.9rem;
+                width: 100%;
+                text-align: left;
+            }
+
+            .common-items {
+                margin-bottom: 20px;
+            }
+
+            .common-items p {
+                font-size: 0.85rem;
+                margin-bottom: 12px;
+                color: #64748b;
+            }
+
+            .tag-container {
+                gap: 10px;
+            }
+
+            .tag {
+                min-height: 44px;
+                padding: 12px 18px;
+                font-size: 0.85rem;
+                flex: 1 1 calc(50% - 5px);
+                min-width: calc(50% - 5px);
+                text-align: center;
+            }
+
+            .generate-btn {
+                padding: 16px;
+                font-size: 1rem;
+                min-height: 52px;
+                width: 100%;
+                font-weight: 600;
+            }
+
+            .budget-toggle {
+                min-height: 52px;
+                padding: 14px 18px;
+                font-size: 0.95rem;
+            }
+
+            .budget-input-wrapper {
+                margin-top: 12px;
+            }
+
+            .budget-input-group {
+                padding: 12px 16px;
+            }
+
+            .budget-hint {
+                font-size: 0.8rem;
+                margin-top: 8px;
+                padding: 0 4px;
+            }
+        }
+
+        /* Additional mobile-specific styles for very small screens */
+        @media (max-width: 400px) {
+            .welcome-title {
+                font-size: 2rem;
+                line-height: 1.2;
+            }
+
+            .welcome-subtitle {
+                font-size: 1rem;
+                margin-bottom: 30px;
+            }
+
+            .welcome-option-btn {
+                padding: 18px 20px;
+            }
+
+            .scan-capture-btn-fullscreen {
+                width: 70px;
+                height: 70px;
+            }
+
+            .scan-camera-controls-fullscreen {
+                bottom: 20px;
+                gap: 10px;
+            }
+
+            .scan-control-btn {
+                padding: 12px 20px;
+                font-size: 0.85rem;
+            }
+
+            .card {
+                padding: 20px 15px;
+            }
+
+            .input-section {
+                margin-bottom: 18px;
+            }
+
+            .input-section label {
+                font-size: 0.85rem;
+                margin-bottom: 6px;
+            }
+
+            .input-section input,
+            .input-section textarea {
+                padding: 12px 14px;
+                font-size: 16px;
+            }
+
+            .input-section textarea {
+                min-height: 100px;
+            }
+
+            .context-box {
+                padding: 14px;
+                margin-bottom: 18px;
+            }
+
+            .quick-options {
+                margin-bottom: 18px;
+            }
+
+            .quick-options-title {
+                font-size: 0.7rem;
+                margin-bottom: 12px;
+            }
+
+            .options-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                margin-bottom: 14px;
+            }
+
+            .option-label {
+                margin-bottom: 6px;
+                font-size: 0.8rem;
+            }
+
+            .option-btn {
+                min-height: 42px;
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+
+            .tag {
+                min-height: 42px;
+                padding: 10px 14px;
+                font-size: 0.8rem;
+                flex: 1 1 calc(50% - 5px);
+            }
+
+            .common-items {
+                margin-bottom: 18px;
+            }
+
+            .common-items p {
+                font-size: 0.8rem;
+                margin-bottom: 10px;
+            }
+
+            .generate-btn {
+                padding: 14px;
+                font-size: 0.95rem;
+                min-height: 48px;
+            }
+
+            .budget-toggle {
+                min-height: 48px;
+                padding: 12px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Landscape mobile orientation */
+        @media (max-width: 900px) and (orientation: landscape) {
+            .welcome-title {
+                font-size: 2.5rem;
+                margin-bottom: 15px;
+            }
+
+            .welcome-subtitle {
+                font-size: 1rem;
+                margin-bottom: 30px;
+            }
+
+            .scan-camera-controls-fullscreen {
+                bottom: 20px;
+            }
+
+            .scan-preview-controls {
+                bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-bar" id="navBar">
+        <div class="nav-content">
+            <button class="nav-home-btn" id="navHomeBtn">← Back to Home</button>
+            <button class="nav-home-btn" id="logoutBtn" style="margin-left: auto;">Logout</button>
+        </div>
+    </div>
+
+    <!-- Homepage (First Screen) -->
+    <div class="auth-screen" id="authScreen">
+        <!-- Top Navigation Bar -->
+        <div class="top-nav">
+            <div class="nav-logo">Pantry Pal</div>
+        </div>
+        
+        <div class="homepage-container">
+            <img src="https://images.pexels.com/photos/10480246/pexels-photo-10480246.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Delicious food" class="main-food-image" />
+            <div class="homepage-content">
+                <h1 class="homepage-headline">Discover Delicious Recipes with <span class="highlight">Pantry Pal</span></h1>
+                <p class="homepage-description">Transform your pantry ingredients into amazing meals. Our AI-powered recipe assistant helps you create delicious dishes from what you already have.</p>
+                <button class="get-started-btn" id="getStartedBtn">Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <button class="modal-close" id="loginModalClose">×</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Login</h2>
+                <p class="modal-subtitle">Welcome back! Please login to continue.</p>
+            </div>
+            <div class="social-login">
+                <div class="social-buttons" id="loginSocialButtons">
+                    <!-- Social buttons will be dynamically added here -->
+                </div>
+                <div class="social-divider">OR</div>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" class="form-input" placeholder="your.email@example.com" required>
+                    <div class="form-error" id="loginEmailError"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                    <div class="form-error" id="loginPasswordError"></div>
+                </div>
+                <button type="submit" class="modal-submit-btn" id="loginSubmitBtn">Login</button>
+                <div class="form-error" id="loginGeneralError"></div>
+            </form>
+            <div class="modal-footer">
+                Don't have an account? <a id="switchToSignup">Sign up</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div class="modal" id="signupModal">
+        <div class="modal-content">
+            <button class="modal-close" id="signupModalClose">×</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Sign Up</h2>
+                <p class="modal-subtitle">Create your account to get started.</p>
+            </div>
+            <div class="social-login">
+                <div class="social-buttons" id="signupSocialButtons">
+                    <!-- Social buttons will be dynamically added here -->
+                </div>
+                <div class="social-divider">OR</div>
+            </div>
+            <form id="signupForm">
+                <div class="form-group">
+                    <label class="form-label" for="signupName">Name (Optional)</label>
+                    <input type="text" id="signupName" class="form-input" placeholder="Your name">
+                    <div class="form-error" id="signupNameError"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" class="form-input" placeholder="your.email@example.com" required>
+                    <div class="form-error" id="signupEmailError"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" class="form-input" placeholder="At least 6 characters" required>
+                    <div class="form-error" id="signupPasswordError"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="signupPasswordConfirm">Confirm Password</label>
+                    <input type="password" id="signupPasswordConfirm" class="form-input" placeholder="Re-enter your password" required>
+                    <div class="form-error" id="signupPasswordConfirmError"></div>
+                </div>
+                <button type="submit" class="modal-submit-btn" id="signupSubmitBtn">Sign Up</button>
+                <div class="form-error" id="signupGeneralError"></div>
+                <div class="form-success" id="signupSuccessMessage"></div>
+            </form>
+            
+            <div class="modal-footer">
+                Already have an account? <a id="switchToLogin">Login</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Page -->
+    <div class="welcome-page hidden" id="welcomePage">
+        <button class="welcome-logout-btn" id="welcomeLogoutBtn">Logout</button>
+        <h1 class="welcome-title">Welcome to PantryPal</h1>
+        <p class="welcome-subtitle">Your new AI Cook</p>
+        <div class="welcome-options">
+            <button class="welcome-option-btn scan-btn" id="scanBtn">
+                <div class="scan-btn-content">
+                    <span style="font-size: 1.3rem; font-weight: 600;">Scan</span>
+                    <span style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Use camera to scan ingredients</span>
+                </div>
+                <div class="scan-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- QR Code style - corner squares and grid pattern -->
+                        <rect x="3" y="3" width="7" height="7" fill="#dc2626" rx="1"/>
+                        <rect x="5" y="5" width="3" height="3" fill="#ffffff"/>
+                        <rect x="14" y="3" width="7" height="7" fill="#dc2626" rx="1"/>
+                        <rect x="16" y="5" width="3" height="3" fill="#ffffff"/>
+                        <rect x="3" y="14" width="7" height="7" fill="#dc2626" rx="1"/>
+                        <rect x="5" y="16" width="3" height="3" fill="#ffffff"/>
+                        <!-- Grid pattern in the middle -->
+                        <rect x="12" y="12" width="2" height="2" fill="#dc2626"/>
+                        <rect x="15" y="12" width="1" height="2" fill="#dc2626"/>
+                        <rect x="17" y="12" width="2" height="2" fill="#dc2626"/>
+                        <rect x="12" y="15" width="1" height="1" fill="#dc2626"/>
+                        <rect x="14" y="15" width="2" height="1" fill="#dc2626"/>
+                        <rect x="17" y="15" width="1" height="1" fill="#dc2626"/>
+                        <rect x="12" y="17" width="2" height="2" fill="#dc2626"/>
+                        <rect x="15" y="17" width="1" height="2" fill="#dc2626"/>
+                        <rect x="17" y="17" width="2" height="2" fill="#dc2626"/>
+                    </svg>
+                </div>
+            </button>
+            <button class="welcome-option-btn text-btn" id="textBtn">
+                <span style="font-size: 1.3rem; font-weight: 600;">Text</span>
+                <span style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Type your ingredients manually</span>
+            </button>
+        </div>
+
+        <!-- Full-screen camera view -->
+        <div class="scan-camera-fullscreen" id="scanCameraFullscreen">
+            <button class="scan-close-btn-fullscreen" id="scanCloseBtnFullscreen">×</button>
+            <div class="scan-camera-placeholder" id="scanCameraPlaceholderFullscreen">
+                <div class="spinner-container">
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                </div>
+                <p style="color: white; margin-top: 20px;">Requesting camera access...</p>
+            </div>
+            <video id="scanVideoFullscreen" autoplay playsinline style="display: none;"></video>
+            <canvas id="scanCanvasFullscreen" style="display: none;"></canvas>
+            <div class="scan-camera-controls-fullscreen" id="scanCameraControlsFullscreen" style="display: none;">
+                <button class="scan-reset-btn-fullscreen" id="scanResetBtnFullscreen">Reset</button>
+                <button class="scan-capture-btn-fullscreen" id="scanCaptureBtnFullscreen">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="white" stroke="#dc2626" stroke-width="2"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="scan-error" id="scanErrorFullscreen" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3002; background: rgba(0, 0, 0, 0.8); padding: 30px; border-radius: 16px; max-width: 90%; text-align: center; backdrop-filter: blur(10px);">
+                <div id="scanErrorMessageFullscreen" style="color: white; margin-bottom: 20px;"></div>
+                <button class="scan-retry-btn" id="scanRetryBtnFullscreen" style="background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%); color: white; padding: 12px 28px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">Try Again</button>
+            </div>
+        </div>
+
+        <!-- Scan Modal -->
+        <div class="scan-modal" id="scanModal">
+            <div class="scan-modal-content">
+                <div class="scan-modal-header">
+                    <h2>Scan Your Pantry</h2>
+                    <button class="scan-modal-close" id="scanModalClose">×</button>
+                </div>
+                <div class="scan-modal-body">
+                    <div class="scan-camera-area" id="scanCameraArea">
+                        <div class="scan-camera-placeholder" id="scanCameraPlaceholder">
+                            <div class="spinner-container">
+                                <div class="spinner-dot"></div>
+                                <div class="spinner-dot"></div>
+                                <div class="spinner-dot"></div>
+                            </div>
+                            <p>Requesting camera access...</p>
+                        </div>
+                        <video id="scanVideo" autoplay playsinline style="display: none;"></video>
+                        <canvas id="scanCanvas" style="display: none;"></canvas>
+                        <div class="scan-camera-controls" id="scanCameraControls" style="display: none;">
+                            <button class="scan-capture-btn" id="scanCaptureBtn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" fill="white" stroke="#dc2626" stroke-width="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="scan-loading" id="scanLoading" style="display: none;">
+                        <div class="spinner-container">
+                            <div class="spinner-dot"></div>
+                            <div class="spinner-dot"></div>
+                            <div class="spinner-dot"></div>
+                        </div>
+                        <p>Analyzing your pantry...</p>
+                    </div>
+                    <div class="scan-error" id="scanError" style="display: none;">
+                        <p id="scanErrorMessage"></p>
+                        <button class="scan-retry-btn" id="scanRetryBtn">Try Again</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full-screen scan preview -->
+        <div class="scan-preview-fullscreen" id="scanPreviewFullscreen">
+            <img id="scanPreviewFullscreenImage" src="" alt="Preview">
+            <div class="scan-preview-controls">
+                <button class="scan-control-btn scan-return-btn" id="scanReturnBtn">Return</button>
+                <button class="scan-control-btn scan-retake-btn-fullscreen" id="scanRetakeBtnFullscreen">Retake</button>
+                <button class="scan-control-btn scan-submit-btn" id="scanSubmitBtnFullscreen" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">Use This Photo</button>
+            </div>
+        </div>
+
+        <!-- Recipe Generator (shown inline when Text is selected) -->
+        <div class="recipe-generator" id="recipeGenerator">
+        <div class="container">
+        <div class="card">
+            <div class="context-box">
+                <div class="input-section" style="margin-bottom: 0;">
+                    <label for="context">Tell me about your needs (optional)</label>
+                    <input
+                        type="text"
+                        id="context"
+                        placeholder="e.g., I have 20 people coming over and want hot comfort food..."
+                    />
+                </div>
+            </div>
+
+            <div class="quick-options">
+                <div class="quick-options-title">Quick Options</div>
+
+                <div class="input-section">
+                    <label for="servingsInput">How many people are going to be fed?</label>
+                    <input
+                        type="number"
+                        id="servingsInput"
+                        placeholder="Enter number of people (e.g., 4)"
+                        min="1"
+                        step="1"
+                    />
+                </div>
+
+                <div class="options-row">
+                    <span class="option-label">Meal type:</span>
+                    <button class="option-btn" data-type="meal" data-value="hot food">Hot Food</button>
+                    <button class="option-btn" data-type="meal" data-value="cold dishes">Cold Dishes</button>
+                    <button class="option-btn" data-type="meal" data-value="appetizers">Appetizers</button>
+                    <button class="option-btn" data-type="meal" data-value="dessert">Dessert</button>
+                </div>
+
+                <div class="input-section">
+                    <label for="dietaryInput">Any dietary restrictions? If so, what are they?</label>
+                    <input
+                        type="text"
+                        id="dietaryInput"
+                        placeholder="e.g., vegetarian, gluten-free, nut allergy, etc."
+                    />
+                </div>
+
+                <div class="options-row">
+                    <span class="option-label">Time:</span>
+                    <button class="option-btn" data-type="time" data-value="quick 15-minute">Quick (15 min)</button>
+                    <button class="option-btn" data-type="time" data-value="30-minute">30 min</button>
+                    <button class="option-btn" data-type="time" data-value="1-hour">1 hour</button>
+                    <button class="option-btn" data-type="time" data-value="slow cooker">Slow Cooker</button>
+                </div>
+
+                <div class="input-section">
+                    <label for="cuisineInput">Cuisine preference (optional)</label>
+                    <input
+                        type="text"
+                        id="cuisineInput"
+                        placeholder="e.g., Italian, Mexican, Asian, etc."
+                    />
+                </div>
+            </div>
+
+            <div class="budget-section">
+                <div class="budget-toggle" id="budgetToggle">
+                    <span class="toggle-icon">$</span>
+                    <span>Add Budget (optional)</span>
+                    <span class="toggle-arrow" id="toggleArrow">+</span>
+                </div>
+                <div class="budget-input-wrapper" id="budgetWrapper">
+                    <div class="budget-input-group">
+                        <span class="currency-symbol">$</span>
+                        <input
+                            type="number"
+                            id="budget"
+                            placeholder="Enter your budget"
+                            min="0"
+                            step="0.01"
+                        />
+                    </div>
+                    <p class="budget-hint">Estimated cost for additional ingredients you may need to buy</p>
+                </div>
+            </div>
+
+            <div class="input-section" id="ingredientsSection">
+                <label for="ingredients">What's in your pantry?</label>
+                <textarea
+                    id="ingredients"
+                    placeholder="Enter your ingredients separated by commas...&#10;Example: chicken, rice, garlic, onions, soy sauce"
+                ></textarea>
+            </div>
+
+            <div class="common-items" id="commonItemsSection">
+                <p>Quick add common items</p>
+                <div class="tag-container">
+                    <button class="tag" data-item="eggs">Eggs</button>
+                    <button class="tag" data-item="milk">Milk</button>
+                    <button class="tag" data-item="butter">Butter</button>
+                    <button class="tag" data-item="flour">Flour</button>
+                    <button class="tag" data-item="sugar">Sugar</button>
+                    <button class="tag" data-item="rice">Rice</button>
+                    <button class="tag" data-item="pasta">Pasta</button>
+                    <button class="tag" data-item="chicken">Chicken</button>
+                    <button class="tag" data-item="beef">Beef</button>
+                    <button class="tag" data-item="onions">Onions</button>
+                    <button class="tag" data-item="garlic">Garlic</button>
+                    <button class="tag" data-item="tomatoes">Tomatoes</button>
+                    <button class="tag" data-item="potatoes">Potatoes</button>
+                    <button class="tag" data-item="cheese">Cheese</button>
+                    <button class="tag" data-item="olive oil">Olive Oil</button>
+                    <button class="tag" data-item="salt">Salt</button>
+                    <button class="tag" data-item="pepper">Pepper</button>
+                    <button class="tag" data-item="bread">Bread</button>
+                </div>
+            </div>
+
+            <button class="generate-btn" id="generateBtn">Generate Recipes</button>
+
+            <div class="loading" id="loading">
+                <div class="spinner-container">
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                </div>
+                <p>Crafting delicious recipes for you...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="result" id="result">
+                <div class="result-header">
+                    <h2>Your Recipes</h2>
+                </div>
+                <div class="recipe-images" id="recipeImages"></div>
+                <div class="recipe-content" id="recipeContent"></div>
+
+                <div class="reviews-section" id="reviewsSection">
+                    <div class="reviews-header">
+                        <h2>Online Reviews & Ratings</h2>
+                        <p>Real reviews from AllRecipes, Food Network, Epicurious & more</p>
+                    </div>
+                    <div class="reviews-loading" id="reviewsLoading">
+                        <div class="spinner-container">
+                            <div class="spinner-dot"></div>
+                            <div class="spinner-dot"></div>
+                            <div class="spinner-dot"></div>
+                        </div>
+                        <p>Searching the web for reviews...</p>
+                    </div>
+                    <div class="reviews-grid" id="reviewsGrid"></div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- AI Chatbot -->
+    <div class="chat-widget">
+        <button class="chat-toggle" id="chatToggle">
+            <span class="chat-icon">💬</span>
+            <span class="close-icon">✕</span>
+        </button>
+
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-avatar">👨‍🍳</div>
+                    <div>
+                        <div class="chat-title">Chef Assistant</div>
+                        <div class="chat-status">Ask me anything about food!</div>
+                    </div>
+                </div>
+                <button class="chat-clear-btn" id="clearChatBtn" title="Clear chat history">Clear</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message bot">
+                    <div class="message-avatar">👨‍🍳</div>
+                    <div class="message-content">
+                        <p>Hi there! I'm your culinary assistant. Ask me anything about the recipes, cooking techniques, ingredient substitutions, or food in general!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <input
+                    type="text"
+                    id="chatInput"
+                    placeholder="Ask about recipes, cooking tips..."
+                    autocomplete="off"
+                />
+                <button class="chat-send" id="chatSend">
+                    <span>➤</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3276',message:'Script tag started',data:{readyState:document.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+        
+        // Global error handler to catch syntax and runtime errors
+        window.addEventListener('error', function(event) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:error-handler',message:'Global error caught',data:{error:event.message,filename:event.filename,lineno:event.lineno,colno:event.colno,type:'error'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:rejection-handler',message:'Unhandled promise rejection',data:{error:String(event.reason)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+        });
+        
+        console.log('Script started!');
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3295',message:'After console.log statement',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+        
+        // Authentication Management
+        let authToken = null;
+        let currentUser = null;
+
+        // DOM Elements
+        const authScreen = document.getElementById('authScreen');
+        const welcomePage = document.getElementById('welcomePage');
+        const loginModal = document.getElementById('loginModal');
+        const signupModal = document.getElementById('signupModal');
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const loginModalClose = document.getElementById('loginModalClose');
+        const signupModalClose = document.getElementById('signupModalClose');
+        const switchToSignup = document.getElementById('switchToSignup');
+        const switchToLogin = document.getElementById('switchToLogin');
+        const navBar = document.getElementById('navBar');
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3293',message:'DOM elements selected',data:{loginBtn:!!loginBtn,signupBtn:!!signupBtn,textBtn:null,scanBtn:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+
+        // Check authentication status on page load
+        async function checkAuthStatus() {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3297',message:'checkAuthStatus called',data:{hasToken:!!localStorage.getItem('authToken')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                showAuthScreen();
+                return;
+            }
+
+            try {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3304',message:'API call starting',data:{endpoint:'/api/auth/status'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                } catch(e){}
+                // #endregion
+                const response = await fetch('/api/auth/status', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3310',message:'API call completed',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                } catch(e){}
+                // #endregion
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = token;
+                    currentUser = data.user;
+                    showMainApp();
+                } else {
+                    localStorage.removeItem('authToken');
+                    showAuthScreen();
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3320',message:'checkAuthStatus error',data:{error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+                } catch(e){}
+                // #endregion
+                localStorage.removeItem('authToken');
+                showAuthScreen();
+            }
+        }
+
+        function showAuthScreen() {
+            authScreen.classList.remove('hidden');
+            welcomePage.classList.add('hidden');
+        }
+
+        function showMainApp() {
+            authScreen.classList.add('hidden');
+            welcomePage.classList.remove('hidden');
+            
+            // Update welcome title with user name
+            const welcomeTitle = document.querySelector('.welcome-title');
+            if (currentUser && welcomeTitle) {
+                const userName = currentUser.name || currentUser.email.split('@')[0];
+                welcomeTitle.textContent = `Welcome ${userName}`;
+            }
+            
+            // Reset welcome page to show buttons (don't auto-navigate)
+            const welcomeOptions = document.querySelector('.welcome-options');
+            const welcomeSubtitle = document.querySelector('.welcome-subtitle');
+            const recipeGenerator = document.getElementById('recipeGenerator');
+            const navBar = document.getElementById('navBar');
+            
+            if (welcomeOptions) welcomeOptions.classList.remove('hidden');
+            if (welcomeSubtitle) welcomeSubtitle.style.display = 'block';
+            if (recipeGenerator) recipeGenerator.classList.remove('show');
+            if (navBar) navBar.classList.remove('show');
+        }
+
+        function closeModal(modal) {
+            modal.classList.remove('show');
+            // Clear form errors
+            modal.querySelectorAll('.form-error').forEach(error => {
+                error.classList.remove('show');
+                error.textContent = '';
+            });
+            // Clear form inputs
+            modal.querySelectorAll('.form-input').forEach(input => {
+                input.value = '';
+            });
+        }
+
+        function showError(elementId, message, isPasswordMismatch = false) {
+            const errorEl = document.getElementById(elementId);
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.add('show');
+                if (isPasswordMismatch) {
+                    errorEl.classList.add('password-mismatch');
+                    // Add error class to password input fields
+                    const passwordInput = document.getElementById('signupPassword');
+                    const confirmInput = document.getElementById('signupPasswordConfirm');
+                    if (passwordInput) passwordInput.classList.add('error');
+                    if (confirmInput) confirmInput.classList.add('error');
+                }
+            }
+        }
+
+        function clearErrors(modal) {
+            modal.querySelectorAll('.form-error').forEach(error => {
+                error.classList.remove('show');
+                error.classList.remove('password-mismatch');
+                error.textContent = '';
+            });
+            modal.querySelectorAll('.form-input').forEach(input => {
+                input.classList.remove('error');
+            });
+            modal.querySelectorAll('.form-success').forEach(success => {
+                success.classList.remove('show');
+                success.textContent = '';
+            });
+        }
+
+        function showSuccess(elementId, message) {
+            const successEl = document.getElementById(elementId);
+            if (successEl) {
+                successEl.textContent = message;
+                successEl.classList.add('show');
+            }
+        }
+
+        // Modal open/close handlers
+        const getStartedBtn = document.getElementById('getStartedBtn');
+        const signupLink = document.getElementById('signupLink');
+        
+        console.log('Setting up button listeners...', {loginBtn: !!loginBtn, signupBtn: !!signupBtn, loginModal: !!loginModal, signupModal: !!signupModal, getStartedBtn: !!getStartedBtn, signupLink: !!signupLink});
+        
+        if (getStartedBtn) {
+            getStartedBtn.addEventListener('click', () => {
+                console.log('Get Started button clicked!');
+                signupModal.classList.add('show');
+                clearErrors(signupModal);
+            });
+        }
+
+        if (signupLink) {
+            signupLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Signup link clicked!');
+                signupModal.classList.add('show');
+                clearErrors(signupModal);
+            });
+        }
+        
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                console.log('Login button clicked!');
+                loginModal.classList.add('show');
+                clearErrors(loginModal);
+            });
+        } else {
+            console.error('ERROR: loginBtn is null!');
+        }
+
+        if (signupBtn) {
+            signupBtn.addEventListener('click', () => {
+                console.log('Signup button clicked!');
+                signupModal.classList.add('show');
+                clearErrors(signupModal);
+            });
+        } else {
+            console.error('ERROR: signupBtn is null!');
+        }
+
+        if (loginModalClose) {
+            loginModalClose.addEventListener('click', () => closeModal(loginModal));
+        } else {
+            console.error('[DEBUG] loginModalClose is null!');
+        }
+        if (signupModalClose) {
+            signupModalClose.addEventListener('click', () => closeModal(signupModal));
+        } else {
+            console.error('[DEBUG] signupModalClose is null!');
+        }
+
+        if (switchToSignup) {
+            switchToSignup.addEventListener('click', () => {
+                closeModal(loginModal);
+                setTimeout(() => signupModal.classList.add('show'), 200);
+            });
+        } else {
+            console.error('[DEBUG] switchToSignup is null!');
+        }
+
+        if (switchToLogin) {
+            switchToLogin.addEventListener('click', () => {
+                closeModal(signupModal);
+                setTimeout(() => loginModal.classList.add('show'), 200);
+            });
+        } else {
+            console.error('[DEBUG] switchToLogin is null!');
+        }
+
+        // Close modal on backdrop click
+        if (loginModal) {
+            loginModal.addEventListener('click', (e) => {
+                if (e.target === loginModal) closeModal(loginModal);
+            });
+        } else {
+            console.error('[DEBUG] loginModal is null!');
+        }
+
+        if (signupModal) {
+            signupModal.addEventListener('click', (e) => {
+                if (e.target === signupModal) closeModal(signupModal);
+            });
+        } else {
+            console.error('[DEBUG] signupModal is null!');
+        }
+
+        // Login form handler
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearErrors(loginModal);
+
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email) {
+                showError('loginEmailError', 'Email is required');
+                return;
+            }
+
+            if (!password) {
+                showError('loginPasswordError', 'Password is required');
+                return;
+            }
+
+            const submitBtn = document.getElementById('loginSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    closeModal(loginModal);
+                    showMainApp();
+                } else {
+                    showError('loginGeneralError', data.error || 'Login failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('loginGeneralError', 'An error occurred. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Login';
+            }
+        });
+        }
+
+        // Signup form handler
+        if (signupForm) {
+            signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearErrors(signupModal);
+
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+
+            // Validation
+            if (!email) {
+                showError('signupEmailError', 'Email is required');
+                return;
+            }
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('signupEmailError', 'Please enter a valid email address');
+                return;
+            }
+
+            if (!password) {
+                showError('signupPasswordError', 'Password is required');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('signupPasswordError', 'Password must be at least 6 characters long');
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                showError('signupPasswordConfirmError', 'Passwords don\'t match', true);
+                return;
+            }
+
+            const submitBtn = document.getElementById('signupSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing up...';
+
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password, name: name || null })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show success message on the page
+                    showSuccess('signupSuccessMessage', 'Account has been created!');
+                    
+                    // Disable submit button to prevent multiple submissions
+                    submitBtn.disabled = true;
+                    
+                    // Wait a moment to show the success message, then auto-login
+                    setTimeout(async () => {
+                        // Automatically log in the user
+                        const loginResponse = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email, password })
+                        });
+
+                        const loginData = await loginResponse.json();
+
+                        if (loginResponse.ok) {
+                            // Close signup modal
+                            closeModal(signupModal);
+                            // Clear signup form
+                            signupForm.reset();
+                            authToken = loginData.token;
+                            currentUser = loginData.user;
+                            localStorage.setItem('authToken', authToken);
+                            showMainApp();
+                        } else {
+                            // If auto-login fails, close signup modal and open login modal
+                            closeModal(signupModal);
+                            signupForm.reset();
+                            setTimeout(() => {
+                                loginModal.classList.add('show');
+                                const loginEmailInput = document.getElementById('loginEmail');
+                                if (loginEmailInput) {
+                                    loginEmailInput.value = email;
+                                }
+                            }, 300);
+                        }
+                    }, 1500); // Show success message for 1.5 seconds before proceeding
+                } else {
+                    if (data.error.includes('Email')) {
+                        showError('signupEmailError', data.error);
+                    } else if (data.error.includes('Password')) {
+                        showError('signupPasswordError', data.error);
+                    } else {
+                        showError('signupGeneralError', data.error || 'Failed to create account. Please try again.');
+                    }
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                showError('signupGeneralError', 'An error occurred. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign Up';
+            }
+        });
+        }
+
+
+        // OAuth Provider Setup
+        async function setupOAuthProviders() {
+            try {
+                const response = await fetch('/api/auth/providers');
+                const providers = await response.json();
+                
+                const loginSocialButtons = document.getElementById('loginSocialButtons');
+                const signupSocialButtons = document.getElementById('signupSocialButtons');
+                
+                // Create social login buttons based on available providers
+                const buttonConfigs = [
+                    { 
+                        name: 'google', 
+                        label: 'Continue with Google', 
+                        icon: `<svg class="social-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`,
+                        enabled: providers.google
+                    },
+                    { 
+                        name: 'facebook', 
+                        label: 'Continue with Facebook', 
+                        icon: `<svg class="social-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`,
+                        enabled: providers.facebook
+                    },
+                    { 
+                        name: 'github', 
+                        label: 'Continue with GitHub', 
+                        icon: `<svg class="social-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>`,
+                        enabled: providers.github
+                    }
+                ];
+
+                // Helper function to create button HTML
+                function createSocialButton(config) {
+                    if (!config.enabled) return '';
+                    return `
+                        <a href="/api/auth/${config.name}" class="social-btn ${config.name}">
+                            ${config.icon}
+                            <span>${config.label}</span>
+                        </a>
+                    `;
+                }
+
+                // Add buttons to both modals
+                if (loginSocialButtons) {
+                    const buttons = buttonConfigs.map(createSocialButton).filter(b => b).join('');
+                    loginSocialButtons.innerHTML = buttons || '<p style="text-align:center;color:#94a3b8;font-size:0.85rem;">OAuth providers not configured</p>';
+                }
+                
+                if (signupSocialButtons) {
+                    const buttons = buttonConfigs.map(createSocialButton).filter(b => b).join('');
+                    signupSocialButtons.innerHTML = buttons || '<p style="text-align:center;color:#94a3b8;font-size:0.85rem;">OAuth providers not configured</p>';
+                }
+            } catch (error) {
+                console.error('Error setting up OAuth providers:', error);
+            }
+        }
+
+        // Handle OAuth callback with token in URL
+        function handleOAuthCallback() {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3725',message:'handleOAuthCallback started',data:{search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3727',message:'URLSearchParams created',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e){}
+                // #endregion
+                const token = urlParams.get('token');
+                const error = urlParams.get('error');
+                const errorMessage = urlParams.get('message');
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3729',message:'URL params extracted',data:{hasToken:!!token,hasError:!!error,hasMessage:!!errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e){}
+                // #endregion
+                
+                if (error === 'oauth_failed') {
+                    // Clear URL parameters
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    // Show error message
+                    const decodedMessage = errorMessage ? decodeURIComponent(errorMessage) : 'OAuth authentication failed. Only the admin email can sign in for testing purposes.';
+                    alert(decodedMessage);
+                    return;
+                }
+                
+                if (token) {
+                    authToken = token;
+                    currentUser = { provider: urlParams.get('provider') || 'oauth' };
+                    localStorage.setItem('authToken', authToken);
+                    
+                    // Clear URL parameters
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    // Verify token and get user info
+                    checkAuthStatus();
+                }
+            } catch (parseError) {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3752',message:'URL parsing error',data:{error:parseError.message,stack:parseError.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e){}
+                // #endregion
+                console.error('Error parsing URL parameters:', parseError);
+            }
+        }
+
+        // Check auth status on page load
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3754',message:'Initialization code reached',data:{readyState:document.readyState,url:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+        try {
+            handleOAuthCallback();
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3760',message:'After handleOAuthCallback',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,C'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+            checkAuthStatus();
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3762',message:'After checkAuthStatus',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+            setupOAuthProviders();
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3764',message:'After setupOAuthProviders',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+        } catch (initError) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3765',message:'Initialization error',data:{error:initError.message,stack:initError.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+            console.error('Initialization error:', initError);
+        }
+
+        // Welcome Page Navigation
+        // Note: navBar already declared at top of script (line 3323)
+        const recipeGenerator = document.getElementById('recipeGenerator');
+        const scanBtn = document.getElementById('scanBtn');
+        const textBtn = document.getElementById('textBtn');
+        const navHomeBtn = document.getElementById('navHomeBtn');
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3847',message:'Welcome page elements selected',data:{textBtn:!!textBtn,scanBtn:!!scanBtn,recipeGenerator:!!recipeGenerator,navBar:!!navBar},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'FIXED'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+
+        // Text button - Show recipe generator inline
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3703',message:'Attaching textBtn listener',data:{textBtn:!!textBtn},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+        if (textBtn) {
+        textBtn.addEventListener('click', () => {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3704',message:'Text button clicked',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+            const welcomeOptions = document.querySelector('.welcome-options');
+            welcomeOptions.classList.add('hidden');
+            
+            const welcomeTitle = document.querySelector('.welcome-title');
+            const welcomeSubtitle = document.querySelector('.welcome-subtitle');
+            if (welcomeTitle) welcomeTitle.style.display = 'none';
+            if (welcomeSubtitle) welcomeSubtitle.style.display = 'none';
+            
+            // Show chatbot on text page
+            const chatWidget = document.querySelector('.chat-widget');
+            if (chatWidget) chatWidget.classList.add('show');
+            
+            setTimeout(() => {
+                recipeGenerator.classList.add('show');
+                navBar.classList.add('show');
+                recipeGenerator.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 200);
+        });
+        }
+
+        // Scan button - Open full-screen camera
+        const scanCameraFullscreen = document.getElementById('scanCameraFullscreen');
+        const scanCloseBtnFullscreen = document.getElementById('scanCloseBtnFullscreen');
+        const scanCameraPlaceholderFullscreen = document.getElementById('scanCameraPlaceholderFullscreen');
+        const scanVideoFullscreen = document.getElementById('scanVideoFullscreen');
+        const scanCanvasFullscreen = document.getElementById('scanCanvasFullscreen');
+        const scanCameraControlsFullscreen = document.getElementById('scanCameraControlsFullscreen');
+        const scanErrorFullscreen = document.getElementById('scanErrorFullscreen');
+        const scanErrorMessageFullscreen = document.getElementById('scanErrorMessageFullscreen');
+        const scanRetryBtnFullscreen = document.getElementById('scanRetryBtnFullscreen');
+        const scanCaptureBtnFullscreen = document.getElementById('scanCaptureBtnFullscreen');
+        const scanResetBtnFullscreen = document.getElementById('scanResetBtnFullscreen');
+        const scanPreviewFullscreen = document.getElementById('scanPreviewFullscreen');
+        const scanPreviewFullscreenImage = document.getElementById('scanPreviewFullscreenImage');
+        const scanReturnBtn = document.getElementById('scanReturnBtn');
+        const scanRetakeBtnFullscreen = document.getElementById('scanRetakeBtnFullscreen');
+        const scanSubmitBtnFullscreen = document.getElementById('scanSubmitBtnFullscreen');
+        let stream = null;
+        let capturedImageData = null;
+
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3905',message:'Attaching scanBtn listener',data:{scanBtn:!!scanBtn},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+        if (scanBtn) {
+        scanBtn.addEventListener('click', async () => {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3808',message:'Scan button clicked',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            } catch(e){}
+            // #endregion
+            // Show chatbot on scan page
+            const chatWidget = document.querySelector('.chat-widget');
+            if (chatWidget) chatWidget.classList.add('show');
+            
+            scanCameraFullscreen.classList.add('show');
+            await startCamera();
+        });
+        }
+
+        if (scanCloseBtnFullscreen) {
+        scanCloseBtnFullscreen.addEventListener('click', () => {
+            stopCamera();
+            scanCameraFullscreen.classList.remove('show');
+            resetScanCamera();
+            
+            // Hide chatbot when closing scan camera and returning to welcome page
+            const chatWidget = document.querySelector('.chat-widget');
+            if (chatWidget) chatWidget.classList.remove('show');
+        });
+        }
+
+        if (scanRetryBtnFullscreen) {
+        scanRetryBtnFullscreen.addEventListener('click', async () => {
+            scanErrorFullscreen.style.display = 'none';
+            await startCamera();
+        });
+        }
+
+        if (scanResetBtnFullscreen) {
+        scanResetBtnFullscreen.addEventListener('click', async () => {
+            stopCamera();
+            await startCamera();
+        });
+        }
+
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   (window.innerWidth <= 768 && 'ontouchstart' in window);
+        }
+
+        async function checkCameraPermission() {
+            // Check if Permissions API is available (better mobile support)
+            if (navigator.permissions && navigator.permissions.query) {
+                try {
+                    const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+                    return permissionStatus.state;
+                } catch (e) {
+                    // Permissions API not supported, will request directly
+                    return 'prompt';
+                }
+            }
+            return 'prompt';
+        }
+
+        async function startCamera() {
+            try {
+                // Show permission request message
+                const isMobile = isMobileDevice();
+                scanCameraPlaceholderFullscreen.style.display = 'flex';
+                scanCameraPlaceholderFullscreen.innerHTML = `
+                    <div class="spinner-container">
+                        <div class="spinner-dot"></div>
+                        <div class="spinner-dot"></div>
+                        <div class="spinner-dot"></div>
+                    </div>
+                    <p style="color: white; margin-top: 20px; font-size: 1.1rem; font-weight: 600;">Requesting Camera Permission</p>
+                    <p style="color: rgba(255, 255, 255, 0.8); margin-top: 10px; font-size: 0.95rem; max-width: 300px; text-align: center; line-height: 1.5;">
+                        ${isMobile 
+                            ? 'Please tap "Allow" when your browser asks for camera permission. This is needed to scan your ingredients.' 
+                            : 'Please allow camera access when prompted by your browser. This is needed to scan your ingredients.'}
+                    </p>
+                `;
+                scanVideoFullscreen.style.display = 'none';
+                scanCameraControlsFullscreen.style.display = 'none';
+                scanErrorFullscreen.style.display = 'none';
+
+                // Check current permission status
+                const permissionState = await checkCameraPermission();
+                
+                if (permissionState === 'denied') {
+                    throw new Error('PermissionDeniedError');
+                }
+
+                // Request camera access - this will trigger the browser's permission prompt
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment', // Use back camera on mobile
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+
+                // Camera access granted - show video feed
+                scanVideoFullscreen.srcObject = stream;
+                await new Promise((resolve) => {
+                    scanVideoFullscreen.onloadedmetadata = () => {
+                        scanVideoFullscreen.play()
+                            .then(() => {
+                                scanVideoFullscreen.style.display = 'block';
+                                scanCameraPlaceholderFullscreen.style.display = 'none';
+                                scanCameraControlsFullscreen.style.display = 'flex';
+                                resolve();
+                            })
+                            .catch((err) => {
+                                console.error('Error playing video:', err);
+                                scanVideoFullscreen.style.display = 'block';
+                                scanCameraPlaceholderFullscreen.style.display = 'none';
+                                scanCameraControlsFullscreen.style.display = 'flex';
+                                resolve();
+                            });
+                    };
+                });
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                scanCameraPlaceholderFullscreen.style.display = 'none';
+                scanErrorFullscreen.style.display = 'flex';
+                
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError' || error.message === 'PermissionDeniedError') {
+                    const isMobile = isMobileDevice();
+                    scanErrorMessageFullscreen.innerHTML = `
+                        <p style="color: white; margin-bottom: 15px; font-size: 1rem; font-weight: 600;">Camera Access Denied</p>
+                        <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 15px; font-size: 0.9rem;">Please allow camera access to use this feature.</p>
+                        ${isMobile 
+                            ? `<p style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; line-height: 1.6;">On mobile: Tap the lock icon in your browser's address bar, then enable Camera permissions.</p>` 
+                            : `<p style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; line-height: 1.6;">Go to your browser settings and allow camera access for this site.</p>`}
+                    `;
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    scanErrorMessageFullscreen.innerHTML = `
+                        <p style="color: white; margin-bottom: 15px; font-size: 1rem; font-weight: 600;">No Camera Found</p>
+                        <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 20px; font-size: 0.9rem;">Please use a device with a camera to scan ingredients.</p>
+                    `;
+                } else {
+                    scanErrorMessageFullscreen.innerHTML = `
+                        <p style="color: white; margin-bottom: 15px; font-size: 1rem; font-weight: 600;">Camera Error</p>
+                        <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 20px; font-size: 0.9rem;">Failed to access camera. Please try again.</p>
+                    `;
+                }
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (scanVideoFullscreen.srcObject) {
+                scanVideoFullscreen.srcObject = null;
+            }
+        }
+
+        if (scanCaptureBtnFullscreen) {
+        scanCaptureBtnFullscreen.addEventListener('click', () => {
+            capturePhoto();
+        });
+        }
+
+        function capturePhoto() {
+            const context = scanCanvasFullscreen.getContext('2d');
+            scanCanvasFullscreen.width = scanVideoFullscreen.videoWidth;
+            scanCanvasFullscreen.height = scanVideoFullscreen.videoHeight;
+            context.drawImage(scanVideoFullscreen, 0, 0);
+
+            const imageData = scanCanvasFullscreen.toDataURL('image/jpeg', 0.8);
+            capturedImageData = imageData;
+            scanPreviewFullscreenImage.src = imageData;
+
+            stopCamera();
+            scanCameraFullscreen.classList.remove('show');
+            scanPreviewFullscreen.classList.add('show');
+        }
+
+        if (scanReturnBtn) {
+        scanReturnBtn.addEventListener('click', () => {
+            scanPreviewFullscreen.classList.remove('show');
+            scanCameraFullscreen.classList.add('show');
+            startCamera();
+        });
+        }
+
+        if (scanRetakeBtnFullscreen) {
+        scanRetakeBtnFullscreen.addEventListener('click', () => {
+            scanPreviewFullscreen.classList.remove('show');
+            scanCameraFullscreen.classList.add('show');
+            startCamera();
+        });
+        }
+
+        if (scanSubmitBtnFullscreen) {
+        scanSubmitBtnFullscreen.addEventListener('click', async () => {
+            if (!capturedImageData) return;
+
+            scanPreviewFullscreen.classList.remove('show');
+            scanCameraFullscreen.classList.add('show');
+            scanCameraPlaceholderFullscreen.style.display = 'flex';
+            scanVideoFullscreen.style.display = 'none';
+            scanCameraControlsFullscreen.style.display = 'none';
+            scanSubmitBtnFullscreen.disabled = true;
+
+            try {
+                const response = await fetch('/api/scan-pantry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageBase64: capturedImageData
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    resetScanCamera();
+                } else {
+                    scanCameraFullscreen.classList.remove('show');
+                    
+                    const welcomeOptions = document.querySelector('.welcome-options');
+                    const welcomeTitle = document.querySelector('.welcome-title');
+                    const welcomeSubtitle = document.querySelector('.welcome-subtitle');
+                    welcomeOptions.classList.add('hidden');
+                    if (welcomeTitle) welcomeTitle.style.display = 'none';
+                    if (welcomeSubtitle) welcomeSubtitle.style.display = 'none';
+                    
+                    if (data.ingredients) {
+                        scannedIngredients = data.ingredients;
+                        isScanMode = true;
+                        ingredientsInput.value = data.ingredients;
+                        if (ingredientsSection) {
+                            ingredientsSection.style.display = 'none';
+                        }
+                        const commonItemsSection = document.getElementById('commonItemsSection');
+                        if (commonItemsSection) {
+                            commonItemsSection.style.display = 'none';
+                        }
+                    }
+                    
+                    setTimeout(() => {
+                        recipeGenerator.classList.add('show');
+                        navBar.classList.add('show');
+                        recipeGenerator.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        resetScanCamera();
+                    }, 200);
+                }
+            } catch (error) {
+                console.error('Error scanning pantry:', error);
+                alert('Failed to scan pantry. Please try again.');
+                resetScanCamera();
+            } finally {
+                scanSubmitBtnFullscreen.disabled = false;
+            }
+        });
+        }
+
+        function resetScanCamera() {
+            stopCamera();
+            capturedImageData = null;
+            scanPreviewFullscreen.classList.remove('show');
+            scanErrorFullscreen.style.display = 'none';
+            scanCameraPlaceholderFullscreen.style.display = 'flex';
+            scanVideoFullscreen.style.display = 'none';
+            scanCameraControlsFullscreen.style.display = 'none';
+        }
+
+        // Logout functionality - shared function
+        async function handleLogout() {
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            
+            // Hide nav bar and recipe generator
+            const navBar = document.getElementById('navBar');
+            if (navBar) navBar.classList.remove('show');
+            const recipeGenerator = document.getElementById('recipeGenerator');
+            if (recipeGenerator) recipeGenerator.classList.remove('show');
+            
+            // Hide chatbot
+            const chatWidget = document.querySelector('.chat-widget');
+            if (chatWidget) chatWidget.classList.remove('show');
+            
+            // Reset welcome page
+            const welcomeOptions = document.querySelector('.welcome-options');
+            if (welcomeOptions) welcomeOptions.classList.remove('hidden');
+            const welcomeTitle = document.querySelector('.welcome-title');
+            const welcomeSubtitle = document.querySelector('.welcome-subtitle');
+            if (welcomeTitle) {
+                welcomeTitle.style.display = 'block';
+                welcomeTitle.textContent = 'Welcome to PantryPal';
+            }
+            if (welcomeSubtitle) welcomeSubtitle.style.display = 'block';
+            
+            // Show auth screen (login/signup)
+            showAuthScreen();
+        }
+
+        // Nav bar logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
+        }
+
+        // Welcome page logout button
+        const welcomeLogoutBtn = document.getElementById('welcomeLogoutBtn');
+        if (welcomeLogoutBtn) {
+            welcomeLogoutBtn.addEventListener('click', handleLogout);
+        }
+
+        // Return to welcome page
+        if (navHomeBtn) {
+        navHomeBtn.addEventListener('click', () => {
+            // Hide chatbot when returning to home
+            const chatWidget = document.querySelector('.chat-widget');
+            if (chatWidget) chatWidget.classList.remove('show');
+            
+            navBar.classList.remove('show');
+            recipeGenerator.classList.remove('show');
+            isScanMode = false;
+            scannedIngredients = '';
+            if (ingredientsSection) {
+                ingredientsSection.style.display = 'block';
+            }
+            const commonItemsSection = document.getElementById('commonItemsSection');
+            if (commonItemsSection) {
+                commonItemsSection.style.display = 'block';
+            }
+            setTimeout(() => {
+                const welcomeOptions = document.querySelector('.welcome-options');
+                welcomeOptions.classList.remove('hidden');
+                const welcomeTitle = document.querySelector('.welcome-title');
+                const welcomeSubtitle = document.querySelector('.welcome-subtitle');
+                if (welcomeTitle) welcomeTitle.style.display = 'block';
+                if (welcomeSubtitle) welcomeSubtitle.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 300);
+        });
+
+        const ingredientsInput = document.getElementById('ingredients');
+        const ingredientsSection = document.getElementById('ingredientsSection');
+        const contextInput = document.getElementById('context');
+        const budgetInput = document.getElementById('budget');
+        const budgetToggle = document.getElementById('budgetToggle');
+        const budgetWrapper = document.getElementById('budgetWrapper');
+        const generateBtn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const recipeContent = document.getElementById('recipeContent');
+        const recipeImages = document.getElementById('recipeImages');
+        const reviewsSection = document.getElementById('reviewsSection');
+        const reviewsGrid = document.getElementById('reviewsGrid');
+        const reviewsLoading = document.getElementById('reviewsLoading');
+        const errorDiv = document.getElementById('error');
+        const tags = document.querySelectorAll('.tag');
+        const optionBtns = document.querySelectorAll('.option-btn');
+        const servingsInput = document.getElementById('servingsInput');
+        const dietaryInput = document.getElementById('dietaryInput');
+        const cuisineInput = document.getElementById('cuisineInput');
+        
+        let isScanMode = false;
+        let scannedIngredients = '';
+
+        budgetToggle.addEventListener('click', () => {
+            budgetToggle.classList.toggle('active');
+            budgetWrapper.classList.toggle('show');
+            if (!budgetWrapper.classList.contains('show')) {
+                budgetInput.value = '';
+            }
+        });
+
+        const selectedOptions = {
+            servings: null,
+            meal: null,
+            diet: null,
+            time: null,
+            cuisine: null
+        };
+
+        tags.forEach((tag, index) => {
+            tag.style.opacity = '0';
+            tag.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                tag.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                tag.style.opacity = '1';
+                tag.style.transform = 'translateY(0)';
+            }, 500 + (index * 25));
+        });
+
+        optionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const value = btn.dataset.value;
+
+                document.querySelectorAll(`.option-btn[data-type="${type}"]`).forEach(b => {
+                    b.classList.remove('selected');
+                });
+
+                if (selectedOptions[type] === value) {
+                    selectedOptions[type] = null;
+                } else {
+                    selectedOptions[type] = value;
+                    btn.classList.add('selected');
+                }
+            });
+        });
+
+        tags.forEach(tag => {
+            tag.addEventListener('click', () => {
+                const item = tag.dataset.item;
+                const currentValue = ingredientsInput.value.trim();
+
+                if (tag.classList.contains('selected')) {
+                    tag.classList.remove('selected');
+                    const items = currentValue.split(',').map(i => i.trim()).filter(i => i.toLowerCase() !== item.toLowerCase());
+                    ingredientsInput.value = items.join(', ');
+                } else {
+                    tag.classList.add('selected');
+                    ingredientsInput.value = currentValue ? currentValue + ', ' + item : item;
+                }
+            });
+        });
+
+        function buildContext() {
+            let parts = [];
+            const userContext = contextInput.value.trim();
+
+            if (userContext) parts.push(userContext);
+            
+            const servingsValue = servingsInput.value.trim();
+            if (servingsValue) {
+                const numPeople = parseInt(servingsValue);
+                if (!isNaN(numPeople) && numPeople > 0) {
+                    parts.push(`Cooking for ${numPeople} ${numPeople === 1 ? 'person' : 'people'}`);
+                }
+            }
+            
+            if (selectedOptions.meal) parts.push(`I want ${selectedOptions.meal}`);
+            
+            const dietaryValue = dietaryInput.value.trim();
+            if (dietaryValue) {
+                parts.push(`Dietary restrictions: ${dietaryValue}`);
+            }
+            
+            if (selectedOptions.time) parts.push(`${selectedOptions.time} recipes`);
+            
+            const cuisineValue = cuisineInput.value.trim();
+            if (cuisineValue) {
+                parts.push(`${cuisineValue} cuisine style`);
+            }
+
+            return parts.join('. ');
+        }
+
+        generateBtn.addEventListener('click', async () => {
+            const ingredients = isScanMode ? scannedIngredients : ingredientsInput.value.trim();
+            const context = buildContext();
+            const budget = budgetInput.value.trim();
+
+            if (!ingredients && !context) {
+                showError('Please enter some ingredients or describe what you need!');
+                return;
+            }
+
+            generateBtn.disabled = true;
+            loading.classList.add('show');
+            result.classList.remove('show');
+            errorDiv.classList.remove('show');
+            recipeImages.innerHTML = '';
+            reviewsGrid.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/generate-recipe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ingredients: ingredients || 'common pantry ingredients',
+                        context,
+                        budget: budget ? `$${budget}` : ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    const formattedRecipe = formatRecipe(data.recipe);
+                    recipeContent.innerHTML = formattedRecipe;
+                    
+                    recipeContent.querySelectorAll('.inline-recipe-image').forEach(img => {
+                        img.onerror = function() {
+                            this.src = `https://source.unsplash.com/600x400/?food`;
+                        };
+                    });
+
+                    if (data.recipeNames && data.recipeNames.length > 0) {
+                        loadRecipeImages(data.recipeNames);
+
+                        reviewsSection.style.display = 'block';
+                        reviewsLoading.classList.add('show');
+                        reviewsGrid.innerHTML = '';
+                        fetchRealReviews(data.recipeNames);
+                    } else {
+                        reviewsSection.style.display = 'none';
+                    }
+
+                    result.classList.add('show');
+                    updateChatContext(data.recipe);
+                }
+            } catch (error) {
+                showError('Failed to connect to the server. Please try again.');
+            } finally {
+                generateBtn.disabled = false;
+                loading.classList.remove('show');
+            }
+        });
+
+        async function loadRecipeImages(recipeNames) {
+            recipeImages.innerHTML = '';
+
+            for (let i = 0; i < recipeNames.length; i++) {
+                const name = recipeNames[i];
+                const card = document.createElement('div');
+                card.className = 'recipe-image-card';
+                card.style.animationDelay = `${i * 0.1}s`;
+
+                const img = document.createElement('img');
+                img.src = `https://source.unsplash.com/800x600/?${encodeURIComponent(name + ' food dish')}`;
+                img.alt = name;
+                img.loading = 'lazy';
+                img.onerror = function() {
+                    this.src = `https://source.unsplash.com/800x600/?food`;
+                };
+
+                const label = document.createElement('div');
+                label.className = 'image-label';
+                label.textContent = name;
+
+                card.appendChild(img);
+                card.appendChild(label);
+                recipeImages.appendChild(card);
+            }
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
+        }
+
+        function formatRecipe(text) {
+            let formatted = text;
+            
+            const recipeNames = [];
+            const headingRegex = /##\s*(?:\d+\.\s*)?(.+?)(?:\n|$)/g;
+            const subHeadingRegex = /###\s*(?:\d+\.\s*)?(.+?)(?:\n|$)/g;
+            let match;
+            
+            while ((match = headingRegex.exec(text)) !== null) {
+                let name = match[1].trim().replace(/\*+/g, '').replace(/^(Recipe|Dish|Food):\s*/i, '').trim();
+                if (name.length > 3 && name.length < 100) {
+                    recipeNames.push(name);
+                }
+            }
+            
+            while ((match = subHeadingRegex.exec(text)) !== null) {
+                let name = match[1].trim().replace(/\*+/g, '').replace(/^(Recipe|Dish|Food):\s*/i, '').trim();
+                if (name.length > 3 && name.length < 100 && !recipeNames.includes(name)) {
+                    recipeNames.push(name);
+                }
+            }
+            
+            formatted = formatted.replace(/##\s*(?:\d+\.\s*)?(.+?)(?:\n|$)/g, (match, name) => {
+                const cleanName = name.trim().replace(/\*+/g, '').replace(/^(Recipe|Dish|Food):\s*/i, '').trim();
+                if (cleanName.length > 3 && cleanName.length < 100) {
+                    const imageUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(cleanName + ' food dish')}`;
+                    return `<div class="recipe-header-with-image">
+                        <h2>${name.trim()}</h2>
+                        <img src="${imageUrl}" alt="${cleanName}" class="inline-recipe-image" loading="lazy" />
+                    </div>`;
+                }
+                return `<h2>${name.trim()}</h2>`;
+            });
+            
+            formatted = formatted.replace(/###\s*(?:\d+\.\s*)?(.+?)(?:\n|$)/g, (match, name) => {
+                const cleanName = name.trim().replace(/\*+/g, '').replace(/^(Recipe|Dish|Food):\s*/i, '').trim();
+                if (cleanName.length > 3 && cleanName.length < 100) {
+                    const imageUrl = `https://source.unsplash.com/500x350/?${encodeURIComponent(cleanName + ' food dish')}`;
+                    return `<div class="recipe-header-with-image sub-recipe">
+                        <h3>${name.trim()}</h3>
+                        <img src="${imageUrl}" alt="${cleanName}" class="inline-recipe-image sub-image" loading="lazy" />
+                    </div>`;
+                }
+                return `<h3>${name.trim()}</h3>`;
+            });
+            
+            formatted = formatted
+                .replace(/# (.*)/g, '<h1>$1</h1>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+            
+            return formatted;
+        }
+
+        function renderStars(rating, size = 'normal') {
+            const fullStars = Math.floor(rating);
+            const hasHalf = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+            let html = '';
+
+            for (let i = 0; i < fullStars; i++) {
+                html += '<span class="star">★</span>';
+            }
+            if (hasHalf) {
+                html += '<span class="star">★</span>';
+            }
+            for (let i = 0; i < emptyStars; i++) {
+                html += '<span class="star empty">★</span>';
+            }
+            return html;
+        }
+
+        function getInitials(name) {
+            if (!name) return '?';
+            return name.split(/[^a-zA-Z]/).filter(Boolean).slice(0, 2).map(n => n[0].toUpperCase()).join('') || '?';
+        }
+
+        async function fetchRealReviews(recipeNames) {
+            const allReviews = [];
+
+            const reviewPromises = recipeNames.map(async (name) => {
+                try {
+                    const response = await fetch(`/api/search-reviews?recipe=${encodeURIComponent(name)}`);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error(`Failed to fetch reviews for ${name}:`, error);
+                    return null;
+                }
+            });
+
+            const results = await Promise.all(reviewPromises);
+            const validReviews = results.filter(r => r && !r.error);
+
+            reviewsLoading.classList.remove('show');
+
+            if (validReviews.length > 0) {
+                renderReviews(validReviews);
+            } else {
+                reviewsGrid.innerHTML = '<p style="color: rgba(255,255,255,0.5); text-align: center;">No reviews found for these recipes.</p>';
+            }
+        }
+
+        function renderReviews(reviews) {
+            reviewsGrid.innerHTML = '';
+
+            reviews.forEach(dish => {
+                const dishCard = document.createElement('div');
+                dishCard.className = 'dish-reviews';
+
+                const reviewsHtml = (dish.reviews || []).map(review => `
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div class="reviewer-avatar">${getInitials(review.user)}</div>
+                                <div>
+                                    <div class="reviewer-name">${review.user || 'Anonymous'}</div>
+                                </div>
+                            </div>
+                            <div class="review-stars">${renderStars(review.rating || 5)}</div>
+                        </div>
+                        <div class="review-comment">${review.comment || ''}</div>
+                        <div class="review-meta">
+                            ${review.source ? `<span class="review-source">${review.source}</span>` : ''}
+                            ${review.helpful ? `<span class="helpful-count">👍 ${review.helpful} found helpful</span>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                let insightsHtml = '';
+                const hasPraise = dish.commonPraise && dish.commonPraise.length > 0;
+                const hasCriticism = dish.commonCriticism && dish.commonCriticism.length > 0;
+                const hasTips = dish.tips && dish.tips.length > 0;
+
+                if (hasPraise || hasCriticism || hasTips) {
+                    insightsHtml = '<div class="insights-section">';
+
+                    if (hasPraise) {
+                        insightsHtml += `
+                            <div class="insight-box">
+                                <div class="insight-title praise">✓ What People Love</div>
+                                <div class="insight-list">
+                                    ${dish.commonPraise.map(p => `<span class="insight-tag praise">${p}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (hasCriticism) {
+                        insightsHtml += `
+                            <div class="insight-box">
+                                <div class="insight-title criticism">⚠ Common Feedback</div>
+                                <div class="insight-list">
+                                    ${dish.commonCriticism.map(c => `<span class="insight-tag criticism">${c}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (hasTips) {
+                        insightsHtml += `
+                            <div class="insight-box">
+                                <div class="insight-title tips">💡 Pro Tips</div>
+                                <div class="insight-list">
+                                    ${dish.tips.map(t => `<span class="insight-tag tips">${t}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    insightsHtml += '</div>';
+                }
+
+                const rating = dish.averageRating || dish.rating || 4.0;
+
+                dishCard.innerHTML = `
+                    <div class="dish-reviews-header">
+                        <div class="dish-name">${dish.dish}</div>
+                        <div class="dish-rating">
+                            <div class="stars">${renderStars(rating)}</div>
+                            <span class="rating-text"><span class="rating-number">${rating.toFixed(1)}</span> / 5</span>
+                            <span class="total-reviews">(${dish.totalReviews || 'N/A'} reviews)</span>
+                            ${dish.source ? `<span class="source-badge">via ${dish.source}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="reviews-list">
+                        ${reviewsHtml}
+                    </div>
+                    ${insightsHtml}
+                `;
+
+                reviewsGrid.appendChild(dishCard);
+            });
+        }
+
+        // Chatbot functionality
+        const chatToggle = document.getElementById('chatToggle');
+        const chatWindow = document.getElementById('chatWindow');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSend = document.getElementById('chatSend');
+
+        let currentRecipeContext = '';
+
+        function loadSavedChats() {
+            try {
+                const savedChats = localStorage.getItem('pantryPalChatHistory');
+                if (savedChats) {
+                    const messages = JSON.parse(savedChats);
+                    chatMessages.innerHTML = '';
+                    messages.forEach(msg => {
+                        addMessage(msg.content, msg.isUser, false);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading saved chats:', error);
+            }
+        }
+
+        function saveChats() {
+            try {
+                const messages = [];
+                chatMessages.querySelectorAll('.chat-message').forEach(msgDiv => {
+                    const isUser = msgDiv.classList.contains('user');
+                    const content = msgDiv.querySelector('.message-content p')?.textContent || '';
+                    if (content && !msgDiv.id) {
+                        messages.push({ content, isUser });
+                    }
+                });
+                localStorage.setItem('pantryPalChatHistory', JSON.stringify(messages));
+            } catch (error) {
+                console.error('Error saving chats:', error);
+            }
+        }
+
+        function clearChatHistory() {
+            localStorage.removeItem('pantryPalChatHistory');
+            chatMessages.innerHTML = '';
+            addMessage("Hi there! I'm your culinary assistant. Ask me anything about the recipes, cooking techniques, ingredient substitutions, or food in general!", false, false);
+        }
+
+        loadSavedChats();
+
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        if (clearChatBtn) {
+        clearChatBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all chat history?')) {
+                clearChatHistory();
+            }
+        });
+        }
+
+        if (chatToggle) {
+        chatToggle.addEventListener('click', () => {
+            chatToggle.classList.toggle('active');
+            chatWindow.classList.toggle('open');
+            if (chatWindow.classList.contains('open')) {
+                chatInput.focus();
+            }
+        });
+        }
+
+        if (chatSend) {
+        chatSend.addEventListener('click', sendMessage);
+        }
+
+        if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        }
+
+        function updateChatContext(recipeText) {
+            currentRecipeContext = recipeText;
+        }
+
+        function addMessage(content, isUser = false, saveToStorage = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isUser ? 'user' : 'bot'}`;
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '👨‍🍳'}</div>
+                <div class="message-content">
+                    <p>${content}</p>
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            if (saveToStorage) {
+                saveChats();
+            }
+        }
+
+        function addTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message bot';
+            typingDiv.id = 'typingIndicator';
+
+            typingDiv.innerHTML = `
+                <div class="message-avatar">👨‍🍳</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, true);
+            chatInput.value = '';
+            chatSend.disabled = true;
+
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        context: currentRecipeContext
+                    })
+                });
+
+                const data = await response.json();
+                removeTypingIndicator();
+
+                if (data.error) {
+                    addMessage("Sorry, I couldn't process that. Please try again!");
+                } else {
+                    addMessage(data.reply);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage("Oops! Something went wrong. Please try again.");
+            } finally {
+                chatSend.disabled = false;
+                chatInput.focus();
+            }
+        }
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:4719',message:'Script execution completed',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
+        } catch(e){}
+        // #endregion
+    }
+    </script>
+</body>
+</html>
+

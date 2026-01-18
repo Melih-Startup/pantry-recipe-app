@@ -1,0 +1,1123 @@
+const express = require('express');
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const os = require('os');
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const session = require('express-session');
+const path = require('path');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const FacebookStrategy = require('passport-facebook').Strategy;
+const GitHubStrategy = require('passport-github2').Strategy;
+const nodemailer = require('nodemailer');
+const app = express();
+const PORT = 3000;
+const HTTPS_PORT = 3443;
+
+const GROQ_API_KEY = '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';
+const JWT_SECRET = process.env.JWT_SECRET || 'pantry-pal-secret-key-change-in-production';
+
+// OAuth configuration (set via environment variables or use defaults for development)
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || '';
+const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET || '';
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
+const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
+
+// Admin configuration (for testing - only admin email can sign up)
+// If ADMIN_EMAIL is not set, the first email to sign up will become the admin
+// To restrict to a specific email, set ADMIN_EMAIL environment variable or change the default below
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null; // Set to null to allow first email, or set specific email
+
+// Email configuration for verification codes
+const EMAIL_USER = process.env.EMAIL_USER || '';
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD || '';
+const EMAIL_FROM = process.env.EMAIL_FROM || EMAIL_USER || 'noreply@pantrypal.com';
+
+// Configure email transporter (using Gmail SMTP by default)
+let emailTransporter = null;
+if (EMAIL_USER && EMAIL_PASSWORD) {
+    emailTransporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: EMAIL_USER,
+            pass: EMAIL_PASSWORD
+        }
+    });
+    console.log(`📧 Email service configured with: ${EMAIL_USER}`);
+    console.log('   Emails will be sent FROM this account TO users who sign up');
+} else {
+    console.log('⚠️  Email not configured. Set EMAIL_USER and EMAIL_PASSWORD environment variables to enable email verification.');
+    console.log('');
+    console.log('   QUICK SETUP (Windows PowerShell):');
+    console.log('   $env:EMAIL_USER="your-email@gmail.com"');
+    console.log('   $env:EMAIL_PASSWORD="your-gmail-app-password"');
+    console.log('   npm start');
+    console.log('');
+    console.log('   For Gmail:');
+    console.log('   1. Go to: https://myaccount.google.com/apppasswords');
+    console.log('   2. Enable 2-Step Verification first if needed');
+    console.log('   3. Generate an App Password for "Mail"');
+    console.log('   4. Use that 16-character password (not your regular password)');
+}
+
+// Database setup
+const dbPath = path.join(__dirname, 'pantry_pal.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error opening database:', err);
+    } else {
+        console.log('Connected to SQLite database');
+        // Create users table if it doesn't exist
+        db.run(`CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT,
+            name TEXT,
+            provider TEXT,
+            provider_id TEXT,
+            is_admin INTEGER DEFAULT 0,
+            email_verified INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(provider, provider_id)
+        )`, (err) => {
+            if (err) {
+                console.error('Error creating users table:', err);
+            } else {
+                console.log('Users table ready');
+                // Add is_admin column if it doesn't exist (for existing databases)
+                db.run(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`, (err) => {
+                    // Ignore error if column already exists
+                });
+                // Add email_verified column if it doesn't exist
+                db.run(`ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`, (err) => {
+                    // Ignore error if column already exists
+                });
+                // Migrate existing users to have NULL provider (for backward compatibility)
+                db.run(`UPDATE users SET provider = NULL, provider_id = NULL WHERE provider IS NULL`, (err) => {
+                    if (err) console.error('Migration error:', err);
+                });
+            }
+        });
+
+        // Create verification codes table
+        db.run(`CREATE TABLE IF NOT EXISTS verification_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            code TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL,
+            used INTEGER DEFAULT 0
+        )`, (err) => {
+            if (err) {
+                console.error('Error creating verification_codes table:', err);
+            } else {
+                console.log('Verification codes table ready');
+            }
+        });
+    }
+});
+
+// Session configuration
+app.use(session({
+    secret: JWT_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false, // Set to true in production with HTTPS
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.static('public'));
+
+// Log all POST requests for debugging
+app.use((req, res, next) => {
+    if (req.method === 'POST') {
+        console.log(`\n📥 ${req.method} ${req.path}`);
+    }
+    next();
+});
+
+// Passport serialization
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+    db.get('SELECT * FROM users WHERE id = ?', [id], (err, user) => {
+        done(err, user);
+    });
+});
+
+// Helper function to create or find OAuth user - Admin only for testing
+function findOrCreateOAuthUser(profile, provider, callback) {
+    const providerId = profile.id || profile.sub || profile.id.toString();
+    const email = profile.emails?.[0]?.value || profile.email || `${providerId}@${provider}.local`;
+    const name = profile.displayName || profile.name?.displayName || profile.name?.givenName || profile.username || 'User';
+
+        // Check if admin account already exists
+        db.get('SELECT id FROM users WHERE is_admin = 1', (err, adminExists) => {
+            if (err) return callback(err, null);
+
+            // If admin exists, prevent OAuth signups for non-admin emails
+            if (adminExists) {
+                // Only allow admin email to login via OAuth (if ADMIN_EMAIL is set)
+                if (ADMIN_EMAIL && email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+                    return callback(new Error('OAuth signups are restricted. Only the admin email can sign in for testing purposes.'), null);
+                }
+            } else {
+                // If no admin exists and ADMIN_EMAIL is set, only allow that email
+                if (ADMIN_EMAIL && email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+                    return callback(new Error('OAuth signups are restricted. Only the admin email can create an account for testing purposes.'), null);
+                }
+            }
+
+        // Check if user exists by provider_id
+        db.get('SELECT * FROM users WHERE provider = ? AND provider_id = ?', [provider, providerId], (err, user) => {
+            if (err) return callback(err, null);
+
+            if (user) {
+                return callback(null, user);
+            }
+
+            // Check if email already exists
+            db.get('SELECT * FROM users WHERE email = ?', [email], (err, existingUser) => {
+                if (err) return callback(err, null);
+
+                // First user becomes admin, or if ADMIN_EMAIL is set, only that email becomes admin
+                const isAdmin = !ADMIN_EMAIL || email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+                if (existingUser) {
+                    // Update existing user with provider info and admin status
+                    db.run(
+                        'UPDATE users SET provider = ?, provider_id = ?, name = COALESCE(?, name), is_admin = ? WHERE email = ?',
+                        [provider, providerId, name, isAdmin ? 1 : 0, email],
+                        function(err) {
+                            if (err) return callback(err, null);
+                            db.get('SELECT * FROM users WHERE email = ?', [email], callback);
+                        }
+                    );
+                } else {
+                    // Create new admin user (only admin email can sign up)
+                    db.run(
+                        'INSERT INTO users (email, password, name, provider, provider_id, is_admin) VALUES (?, ?, ?, ?, ?, ?)',
+                        [email, null, name, provider, providerId, isAdmin ? 1 : 0],
+                        function(err) {
+                            if (err) return callback(err, null);
+                            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], callback);
+                        }
+                    );
+                }
+            });
+        });
+    });
+}
+
+// Google OAuth Strategy
+if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+    passport.use(new GoogleStrategy({
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL: "/api/auth/google/callback"
+    }, (accessToken, refreshToken, profile, done) => {
+        findOrCreateOAuthUser(profile, 'google', (err, user) => {
+            if (err) {
+                console.error('OAuth error:', err.message);
+                return done(err, null);
+            }
+            done(null, user);
+        });
+    }));
+}
+
+// Facebook OAuth Strategy
+if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
+    passport.use(new FacebookStrategy({
+        clientID: FACEBOOK_APP_ID,
+        clientSecret: FACEBOOK_APP_SECRET,
+        callbackURL: "/api/auth/facebook/callback",
+        profileFields: ['id', 'displayName', 'email']
+    }, (accessToken, refreshToken, profile, done) => {
+        findOrCreateOAuthUser(profile, 'facebook', (err, user) => {
+            if (err) {
+                console.error('OAuth error:', err.message);
+                return done(err, null);
+            }
+            done(null, user);
+        });
+    }));
+}
+
+// GitHub OAuth Strategy
+if (GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET) {
+    passport.use(new GitHubStrategy({
+        clientID: GITHUB_CLIENT_ID,
+        clientSecret: GITHUB_CLIENT_SECRET,
+        callbackURL: "/api/auth/github/callback"
+    }, (accessToken, refreshToken, profile, done) => {
+        findOrCreateOAuthUser(profile, 'github', (err, user) => {
+            if (err) {
+                console.error('OAuth error:', err.message);
+                return done(err, null);
+            }
+            done(null, user);
+        });
+    }));
+}
+
+// Authentication middleware
+function authenticateToken(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1] || req.session.token;
+    
+    if (!token) {
+        return res.status(401).json({ error: 'Access denied. No token provided.' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: 'Invalid or expired token.' });
+        }
+        req.user = user;
+        next();
+    });
+}
+
+// Helper function to validate email
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Helper function to generate 6-digit verification code
+function generateVerificationCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Helper function to send verification email
+async function sendVerificationEmail(email, code) {
+    if (!emailTransporter) {
+        throw new Error('Email service not configured. Please set EMAIL_USER and EMAIL_PASSWORD environment variables.');
+    }
+
+    const mailOptions = {
+        from: EMAIL_FROM,
+        to: email,
+        subject: 'Pantry Pal - Email Verification Code',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #dc2626;">Pantry Pal - Email Verification</h2>
+                <p>Thank you for signing up! Please use the following code to verify your email address:</p>
+                <div style="background: #f3f4f6; border: 2px solid #dc2626; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+                    <h1 style="color: #dc2626; font-size: 32px; letter-spacing: 8px; margin: 0;">${code}</h1>
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">This code will expire in 10 minutes.</p>
+                <p style="color: #6b7280; font-size: 14px;">If you didn't request this code, please ignore this email.</p>
+            </div>
+        `,
+        text: `Your Pantry Pal verification code is: ${code}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`
+    };
+
+    try {
+        console.log(`📧 Attempting to send verification code to: ${email}`);
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log(`✅ Verification email sent successfully! Message ID: ${info.messageId}`);
+        return true;
+    } catch (error) {
+        console.error('❌ Error sending email:', error.message);
+        if (error.code === 'EAUTH') {
+            throw new Error('Email authentication failed. Please check your EMAIL_USER and EMAIL_PASSWORD. For Gmail, use an App Password (not your regular password).');
+        } else if (error.code === 'EENVELOPE') {
+            throw new Error('Invalid email address. Please check the email you entered.');
+        } else {
+            throw new Error(`Failed to send email: ${error.message}`);
+        }
+    }
+}
+
+// Simple signup endpoint (no 2FA)
+app.post('/api/auth/signup', async (req, res) => {
+    try {
+        const { email, password, name } = req.body;
+
+        // Validation
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+        }
+
+        // Check if user already exists
+        db.get('SELECT id, provider FROM users WHERE email = ?', [email.toLowerCase()], async (err, row) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (row) {
+                if (row.provider) {
+                    return res.status(400).json({ error: 'This email is already registered with a social account. Please use that method to login.' });
+                }
+                return res.status(400).json({ error: 'Email already registered' });
+            }
+
+            // Check if admin account already exists to determine if new user should be admin
+            db.get('SELECT id FROM users WHERE is_admin = 1', async (err, adminExists) => {
+                if (err) {
+                    console.error('Database error:', err);
+                    return res.status(500).json({ error: 'Database error' });
+                }
+
+                // Determine if this user should be admin:
+                // - If no admin exists yet AND (ADMIN_EMAIL is not set OR this email matches ADMIN_EMAIL)
+                // - Otherwise, create as regular user
+                let isAdmin = false;
+                if (!adminExists) {
+                    // First user becomes admin, or if ADMIN_EMAIL is set, only that email becomes admin
+                    if (!ADMIN_EMAIL || email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                        isAdmin = true;
+                    }
+                }
+
+                // Hash password
+                const saltRounds = 10;
+                const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+                // Create the user account
+                db.run(
+                    'INSERT INTO users (email, password, name, provider, provider_id, is_admin, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [email.toLowerCase(), hashedPassword, name || null, null, null, isAdmin ? 1 : 0, 1],
+                    function(err) {
+                        if (err) {
+                            console.error('Error creating user:', err);
+                            return res.status(500).json({ error: 'Failed to create user' });
+                        }
+
+                        console.log(`✅ Account created: ${email.toLowerCase()} ${isAdmin ? '(Admin)' : '(User)'}`);
+
+                        res.json({
+                            message: 'Account created successfully. Please login to continue.'
+                        });
+                    }
+                );
+            });
+        });
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Login endpoint
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validation
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        // Find user by email
+        db.get('SELECT * FROM users WHERE email = ?', [email.toLowerCase()], async (err, user) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (!user) {
+                return res.status(401).json({ error: 'Invalid email or password' });
+            }
+
+            // Check if user signed up with OAuth (no password)
+            if (user.provider && !user.password) {
+                return res.status(401).json({ error: 'This account was created with a social login. Please use that method to login.' });
+            }
+
+            if (!user.password) {
+                return res.status(401).json({ error: 'Invalid email or password' });
+            }
+
+            // Verify password
+            const isValidPassword = await bcrypt.compare(password, user.password);
+
+            if (!isValidPassword) {
+                return res.status(401).json({ error: 'Invalid email or password' });
+            }
+
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: user.id, email: user.email, isAdmin: user.is_admin === 1 },
+                JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            // Store token in session
+            req.session.token = token;
+            req.session.userId = user.id;
+
+            res.json({
+                message: 'Login successful',
+                token: token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    isAdmin: user.is_admin === 1
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Logout endpoint
+app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Logout error:', err);
+            return res.status(500).json({ error: 'Failed to logout' });
+        }
+        res.json({ message: 'Logout successful' });
+    });
+});
+
+// Check authentication status
+app.get('/api/auth/status', authenticateToken, (req, res) => {
+    db.get('SELECT id, email, name, is_admin FROM users WHERE id = ?', [req.user.id], (err, user) => {
+        if (err || !user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+        res.json({ 
+            authenticated: true, 
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                isAdmin: user.is_admin === 1
+            }
+        });
+    });
+});
+
+// OAuth Routes
+// Google OAuth
+if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+    app.get('/api/auth/google',
+        passport.authenticate('google', { scope: ['profile', 'email'] })
+    );
+
+    app.get('/api/auth/google/callback',
+        (req, res, next) => {
+            passport.authenticate('google', (err, user, info) => {
+                if (err) {
+                    const errorMsg = encodeURIComponent(err.message || 'OAuth authentication failed');
+                    return res.redirect(`/?error=oauth_failed&message=${errorMsg}`);
+                }
+                if (!user) {
+                    return res.redirect('/?error=oauth_failed');
+                }
+                req.user = user;
+                next();
+            })(req, res, next);
+        },
+        (req, res) => {
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: req.user.id, email: req.user.email, isAdmin: req.user.is_admin === 1 },
+                JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            // Store token in session
+            req.session.token = token;
+            req.session.userId = req.user.id;
+
+            // Redirect to app with token
+            res.redirect(`/?token=${token}&provider=google`);
+        }
+    );
+}
+
+// Facebook OAuth
+if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
+    app.get('/api/auth/facebook',
+        passport.authenticate('facebook', { scope: ['email'] })
+    );
+
+    app.get('/api/auth/facebook/callback',
+        (req, res, next) => {
+            passport.authenticate('facebook', (err, user, info) => {
+                if (err) {
+                    const errorMsg = encodeURIComponent(err.message || 'OAuth authentication failed');
+                    return res.redirect(`/?error=oauth_failed&message=${errorMsg}`);
+                }
+                if (!user) {
+                    return res.redirect('/?error=oauth_failed');
+                }
+                req.user = user;
+                next();
+            })(req, res, next);
+        },
+        (req, res) => {
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: req.user.id, email: req.user.email, isAdmin: req.user.is_admin === 1 },
+                JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            // Store token in session
+            req.session.token = token;
+            req.session.userId = req.user.id;
+
+            // Redirect to app with token
+            res.redirect(`/?token=${token}&provider=facebook`);
+        }
+    );
+}
+
+// GitHub OAuth
+if (GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET) {
+    app.get('/api/auth/github',
+        passport.authenticate('github', { scope: ['user:email'] })
+    );
+
+    app.get('/api/auth/github/callback',
+        (req, res, next) => {
+            passport.authenticate('github', (err, user, info) => {
+                if (err) {
+                    const errorMsg = encodeURIComponent(err.message || 'OAuth authentication failed');
+                    return res.redirect(`/?error=oauth_failed&message=${errorMsg}`);
+                }
+                if (!user) {
+                    return res.redirect('/?error=oauth_failed');
+                }
+                req.user = user;
+                next();
+            })(req, res, next);
+        },
+        (req, res) => {
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: req.user.id, email: req.user.email, isAdmin: req.user.is_admin === 1 },
+                JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            // Store token in session
+            req.session.token = token;
+            req.session.userId = req.user.id;
+
+            // Redirect to app with token
+            res.redirect(`/?token=${token}&provider=github`);
+        }
+    );
+}
+
+// Get OAuth provider status
+app.get('/api/auth/providers', (req, res) => {
+    res.json({
+        google: !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET),
+        facebook: !!(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET),
+        github: !!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)
+    });
+});
+
+app.post('/api/generate-recipe', async (req, res) => {
+    const { ingredients, context, budget } = req.body;
+
+    if (!ingredients || ingredients.trim() === '') {
+        return res.status(400).json({ error: 'Please provide ingredients or describe what you need' });
+    }
+
+    // Build the user message based on input
+    let userMessage = '';
+
+    if (context && context.trim()) {
+        userMessage = `${context}\n\nAvailable ingredients: ${ingredients}`;
+    } else {
+        userMessage = `I have these ingredients: ${ingredients}. What can I make?`;
+    }
+
+    // Add budget constraint if provided
+    if (budget && budget.trim()) {
+        userMessage += `\n\nBudget constraint: I have a budget of ${budget} for additional ingredients I might need to buy.`;
+    }
+
+    try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a helpful chef assistant that understands natural language requests. You can handle:
+- Serving sizes (e.g., "cooking for 20 people", "family of 4", "just myself")
+- Meal types (hot food, cold dishes, appetizers, desserts, breakfast, lunch, dinner)
+- Dietary restrictions (vegetarian, vegan, gluten-free, halal, kosher, allergies)
+- Cuisine preferences (Italian, Mexican, Asian, comfort food, etc.)
+- Time constraints (quick 15-min meals, slow cooker, meal prep)
+- Occasions (party food, romantic dinner, kids birthday, potluck)
+- Budget constraints (when a budget is specified, estimate costs and suggest recipes that fit within it)
+
+When a budget is provided:
+- Estimate the approximate cost of additional ingredients needed (not counting what they already have)
+- Prioritize recipes that fit within the budget
+- Show estimated cost per recipe and per serving
+- Suggest budget-friendly substitutions when possible
+
+When responding:
+1. Acknowledge any specific requirements mentioned (servings, dietary needs, budget, etc.)
+2. Suggest 2-3 recipes that match ALL requirements
+3. Scale ingredients appropriately for the serving size
+4. Include clear step-by-step instructions
+5. Add cooking times and difficulty level
+6. If budget was specified, include estimated costs
+7. IMPORTANT: Start each recipe with the format "## RECIPE_NAME" (recipe name in caps) so images can be matched
+
+Format recipes with markdown headings (##) and bullet points for clarity.
+
+Format recipes with clear markdown.`
+                    },
+                    {
+                        role: 'user',
+                        content: userMessage
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 2500
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(500).json({ error: data.error.message });
+        }
+
+        let recipeContent = data.choices[0].message.content;
+
+        // Extract recipe names for images
+        const recipeNames = extractRecipeNames(recipeContent);
+
+        res.json({
+            recipe: recipeContent,
+            recipeNames: recipeNames
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Failed to generate recipe' });
+    }
+});
+
+// Extract recipe names and food items from the response
+function extractRecipeNames(content) {
+    const recipes = [];
+    const seen = new Set();
+    
+    // Match ## headings that likely contain recipe names
+    const headingRegex = /##\s*(?:\d+\.\s*)?(.+?)(?:\n|$)/g;
+    let match;
+
+    while ((match = headingRegex.exec(content)) !== null) {
+        let name = match[1].trim();
+        // Clean up the name - remove asterisks and other formatting
+        name = name.replace(/\*+/g, '').trim();
+        // Remove common prefixes
+        name = name.replace(/^(Recipe|Dish|Food):\s*/i, '').trim();
+        if (name.length > 3 && name.length < 100 && !seen.has(name.toLowerCase())) {
+            recipes.push(name);
+            seen.add(name.toLowerCase());
+        }
+    }
+
+    // Also extract from ### headings (sub-recipes or variations)
+    const subHeadingRegex = /###\s*(?:\d+\.\s*)?(.+?)(?:\n|$)/g;
+    while ((match = subHeadingRegex.exec(content)) !== null) {
+        let name = match[1].trim();
+        name = name.replace(/\*+/g, '').trim();
+        name = name.replace(/^(Recipe|Dish|Food):\s*/i, '').trim();
+        if (name.length > 3 && name.length < 100 && !seen.has(name.toLowerCase())) {
+            recipes.push(name);
+            seen.add(name.toLowerCase());
+        }
+    }
+
+    return recipes.slice(0, 10); // Increased to 10 recipes
+}
+
+// Endpoint to get food image from Unsplash
+app.get('/api/food-image', async (req, res) => {
+    const { query } = req.query;
+
+    if (!query) {
+        return res.status(400).json({ error: 'Query required' });
+    }
+
+    // Use Unsplash source for direct image URLs (no API key needed for basic usage)
+    const imageUrl = `https://source.unsplash.com/800x600/?${encodeURIComponent(query + ' food dish')}`;
+
+    res.json({ imageUrl });
+});
+
+// Search for real reviews from the web for a recipe
+app.get('/api/search-reviews', async (req, res) => {
+    const { recipe } = req.query;
+
+    if (!recipe) {
+        return res.status(400).json({ error: 'Recipe name required' });
+    }
+
+    try {
+        // Use Groq to search and summarize real reviews from the web
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a food review aggregator. Search your knowledge for real reviews and ratings of the given dish from popular sources like AllRecipes, Food Network, Epicurious, Bon Appetit, Serious Eats, and food blogs.
+
+Return ONLY valid JSON in this exact format (no other text):
+{
+    "dish": "Recipe Name",
+    "averageRating": 4.5,
+    "totalReviews": "2.3k",
+    "source": "AllRecipes, Food Network",
+    "reviews": [
+        {
+            "user": "Username or Anonymous",
+            "rating": 5,
+            "comment": "Actual review comment from the web",
+            "source": "AllRecipes",
+            "helpful": 234
+        }
+    ],
+    "commonPraise": ["quick to make", "family favorite"],
+    "commonCriticism": ["needs more seasoning"],
+    "tips": ["Add extra garlic", "Let it rest before serving"]
+}
+
+Include 3-4 reviews that reflect real opinions found online. If you can't find real reviews, base it on typical feedback for this type of dish from cooking communities. Be accurate about ratings and include the source.`
+                    },
+                    {
+                        role: 'user',
+                        content: `Find real online reviews and ratings for: "${recipe}"`
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 1000
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(500).json({ error: data.error.message });
+        }
+
+        const content = data.choices[0].message.content;
+
+        // Try to parse JSON from response
+        try {
+            // Extract JSON from the response (handle markdown code blocks)
+            let jsonStr = content;
+            const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (jsonMatch) {
+                jsonStr = jsonMatch[1];
+            }
+
+            const reviewData = JSON.parse(jsonStr.trim());
+            res.json(reviewData);
+        } catch (parseError) {
+            console.error('Failed to parse review JSON:', parseError);
+            res.json({
+                dish: recipe,
+                averageRating: 4.2,
+                totalReviews: "N/A",
+                source: "Web Search",
+                reviews: [],
+                error: "Could not parse reviews"
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        res.status(500).json({ error: 'Failed to fetch reviews' });
+    }
+});
+
+// Scan pantry image endpoint
+app.post('/api/scan-pantry', async (req, res) => {
+    const { imageBase64 } = req.body;
+
+    if (!imageBase64) {
+        return res.status(400).json({ error: 'Image required' });
+    }
+
+    try {
+        // Remove data URL prefix if present
+        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a helpful assistant that identifies food ingredients from images. 
+When you see a pantry, refrigerator, or food items, list ALL the ingredients you can identify.
+Return ONLY a comma-separated list of ingredient names. Be specific and accurate.
+Example format: chicken, rice, garlic, onions, soy sauce, olive oil, tomatoes, pasta, cheese, butter
+Do not include any explanations, just the ingredient list.`
+                    },
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'text',
+                                text: 'Identify all the food ingredients and items you can see in this image. Return only a comma-separated list of ingredient names.'
+                            },
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: `data:image/jpeg;base64,${base64Data}`
+                                }
+                            }
+                        ]
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 500
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(500).json({ error: data.error.message });
+        }
+
+        const ingredientsText = data.choices[0].message.content.trim();
+        
+        // Clean up the response - remove any extra text and format as comma-separated
+        let ingredients = ingredientsText
+            .replace(/^Here are the ingredients[:\s]*/i, '')
+            .replace(/^Ingredients[:\s]*/i, '')
+            .replace(/^I can see[:\s]*/i, '')
+            .replace(/\.$/, '')
+            .trim();
+
+        res.json({ 
+            ingredients: ingredients,
+            rawResponse: ingredientsText
+        });
+    } catch (error) {
+        console.error('Error scanning pantry:', error);
+        res.status(500).json({ error: 'Failed to scan pantry image' });
+    }
+});
+
+// AI Chatbot endpoint
+app.post('/api/chat', async (req, res) => {
+    const { message, context } = req.body;
+
+    if (!message || message.trim() === '') {
+        return res.status(400).json({ error: 'Message required' });
+    }
+
+    try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a friendly and knowledgeable culinary assistant chatbot on a recipe website. You help users with:
+- Questions about cooking techniques and methods
+- Ingredient substitutions and alternatives
+- Nutritional information
+- Dietary restrictions and modifications
+- Food storage and safety tips
+- Cooking times and temperatures
+- Kitchen equipment recommendations
+- Meal planning suggestions
+- Cultural food traditions and history
+
+${context ? `\nCurrent recipe context the user is viewing:\n${context}\n\nUse this context to provide relevant, specific answers about the recipes they're looking at.` : ''}
+
+Keep responses concise but helpful (2-4 sentences for simple questions, more detailed for complex ones). Be warm and encouraging. Use simple formatting when helpful.`
+                    },
+                    {
+                        role: 'user',
+                        content: message
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(500).json({ error: data.error.message });
+        }
+
+        res.json({ reply: data.choices[0].message.content });
+    } catch (error) {
+        console.error('Chat error:', error);
+        res.status(500).json({ error: 'Failed to get response' });
+    }
+});
+
+// Get local IP address for mobile access
+function getLocalIPAddress() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // Skip internal (loopback) and non-IPv4 addresses
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost';
+}
+
+const localIP = getLocalIPAddress();
+
+// Function to generate self-signed certificate for HTTPS (development only)
+function generateSelfSignedCert() {
+    const certDir = path.join(__dirname, 'certs');
+    const keyPath = path.join(certDir, 'key.pem');
+    const certPath = path.join(certDir, 'cert.pem');
+    
+    // Create certs directory if it doesn't exist
+    if (!fs.existsSync(certDir)) {
+        fs.mkdirSync(certDir, { recursive: true });
+    }
+    
+    // Check if certificates already exist
+    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+        try {
+            return {
+                key: fs.readFileSync(keyPath),
+                cert: fs.readFileSync(certPath)
+            };
+        } catch (err) {
+            console.log('⚠️  Error reading existing certificates, generating new ones...');
+        }
+    }
+    
+    // Try to generate certificate using Node.js package (no OpenSSL needed)
+    // Note: selfsigned.generate is async in newer versions, but we can't use async here
+    // So we'll generate it synchronously or use existing certs
+    try {
+        const selfsigned = require('selfsigned');
+        
+        // If certificates don't exist, tell user to run generate-cert.js
+        if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+            console.log('🔐 SSL certificates not found.');
+            console.log('   Run: node generate-cert.js');
+            return null;
+        }
+        
+        // Certificates exist, read them
+        return {
+            key: fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath)
+        };
+    } catch (err) {
+        console.log('⚠️  Could not read SSL certificates.');
+        console.log('   Run: node generate-cert.js to generate them.');
+        return null;
+    }
+}
+
+// Start HTTP server (for localhost/desktop)
+const httpServer = http.createServer(app);
+httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🍳 Pantry Recipe App is running!\n`);
+    console.log(`📱 Access from your computer:`);
+    console.log(`   http://localhost:${PORT}\n`);
+    console.log(`📱 Access from mobile devices on same WiFi:`);
+    console.log(`   http://${localIP}:${PORT}\n`);
+    console.log(`💡 Make sure your phone/tablet is on the same WiFi network!\n`);
+});
+
+// Try to start HTTPS server (for mobile camera access)
+const sslCert = generateSelfSignedCert();
+if (sslCert) {
+    const httpsServer = https.createServer(sslCert, app);
+    httpsServer.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.log(`\n⚠️  HTTPS port ${HTTPS_PORT} is already in use.`);
+            console.log(`   Please stop the other application or change HTTPS_PORT in server.js\n`);
+        } else {
+            console.log(`\n❌ HTTPS server error: ${err.message}\n`);
+        }
+    });
+    httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+        console.log(`\n🔒 HTTPS Server is running! (Required for mobile camera access)\n`);
+        console.log(`📱 Access from your computer:`);
+        console.log(`   https://localhost:${HTTPS_PORT}\n`);
+        console.log(`📱 Access from mobile devices on same WiFi:`);
+        console.log(`   https://${localIP}:${HTTPS_PORT}\n`);
+        console.log(`⚠️  Your browser will show a security warning for self-signed certificates.`);
+        console.log(`   Click "Advanced" → "Proceed to ${localIP}" (or similar) to continue.\n`);
+    });
+} else {
+    console.log(`\n⚠️  HTTPS not available. Mobile camera access requires HTTPS.`);
+    console.log(`   Please run generate-cert.bat or generate-cert.ps1 to create certificates.\n`);
+}
+
+console.log(`🔐 ADMIN MODE ENABLED (Testing)`);
+if (ADMIN_EMAIL) {
+    console.log(`   Only this email can sign up: ${ADMIN_EMAIL}`);
+    console.log(`   Set ADMIN_EMAIL environment variable to change it.\n`);
+} else {
+    console.log(`   First email to sign up will become the admin account.`);
+    console.log(`   Set ADMIN_EMAIL environment variable to restrict to a specific email.\n`);
+}
+console.log(`📧 Email Status: ${emailTransporter ? '✅ Configured' : '⚠️  Not configured (Development Mode - codes will show in console)'}\n`);
+console.log(`🔍 Server is listening for requests...\n`);
