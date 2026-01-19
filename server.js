@@ -1073,26 +1073,43 @@ function generateSelfSignedCert() {
         fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1031',message:'generateSelfSignedCert called (not Vercel)',data:vercelCheck,timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
         // #endregion
         
-        const certDir = path.join(__dirname, 'certs');
-        const keyPath = path.join(certDir, 'key.pem');
-        const certPath = path.join(certDir, 'cert.pem');
-        
-        // CRITICAL: Check if path contains /var/task BEFORE any file operations
-        // This is an additional safety check in case Vercel detection failed
-        if (certDir.includes('/var/task') || certDir.includes('\\var\\task')) {
+        // CRITICAL: Wrap ALL path and file operations in try-catch
+        // Even path.join can fail in some edge cases
+        let certDir, keyPath, certPath;
+        try {
+            certDir = path.join(__dirname, 'certs');
+            keyPath = path.join(certDir, 'key.pem');
+            certPath = path.join(certDir, 'cert.pem');
+            
+            // CRITICAL: Check if path contains /var/task BEFORE any file operations
+            // This is an additional safety check in case Vercel detection failed
+            if (certDir.includes('/var/task') || certDir.includes('\\var\\task')) {
+                return null;
+            }
+        } catch (err) {
+            // If path operations fail, we're probably on Vercel - return null
             return null;
         }
         
         // Create certs directory if it doesn't exist (only locally)
         // CRITICAL: Wrap ALL file operations in try-catch to prevent crashes on Vercel
         try {
-            if (!fs.existsSync(certDir)) {
+            // Use try-catch around existsSync too - it can throw in some environments
+            let dirExists = false;
+            try {
+                dirExists = fs.existsSync(certDir);
+            } catch (err) {
+                // If existsSync fails, assume we can't access filesystem - return null
+                return null;
+            }
+            
+            if (!dirExists) {
                 try {
                     fs.mkdirSync(certDir, { recursive: true });
                 } catch (err) {
                     // If we can't create the directory (e.g., on Vercel or read-only filesystem), just return null
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1067',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1095',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
                     // #endregion
                     // Always return null for any filesystem error - don't throw
                     return null;
@@ -1105,15 +1122,31 @@ function generateSelfSignedCert() {
         }
     
     // Check if certificates already exist
-    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    // CRITICAL: Wrap ALL file operations in try-catch
+    try {
+        let keyExists = false;
+        let certExists = false;
         try {
-            return {
-                key: fs.readFileSync(keyPath),
-                cert: fs.readFileSync(certPath)
-            };
+            keyExists = fs.existsSync(keyPath);
+            certExists = fs.existsSync(certPath);
         } catch (err) {
-            console.log('⚠️  Error reading existing certificates, generating new ones...');
+            // If existsSync fails, we're probably on Vercel - return null
+            return null;
         }
+        
+        if (keyExists && certExists) {
+            try {
+                return {
+                    key: fs.readFileSync(keyPath),
+                    cert: fs.readFileSync(certPath)
+                };
+            } catch (err) {
+                console.log('⚠️  Error reading existing certificates, generating new ones...');
+            }
+        }
+    } catch (err) {
+        // Catch ANY error and return null
+        return null;
     }
     
     // Try to generate certificate using Node.js package (no OpenSSL needed)
@@ -1123,7 +1156,18 @@ function generateSelfSignedCert() {
         const selfsigned = require('selfsigned');
         
         // If certificates don't exist, tell user to run generate-cert.js
-        if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+        // CRITICAL: Wrap existsSync in try-catch
+        let keyExists = false;
+        let certExists = false;
+        try {
+            keyExists = fs.existsSync(keyPath);
+            certExists = fs.existsSync(certPath);
+        } catch (err) {
+            // If existsSync fails, we're probably on Vercel - return null
+            return null;
+        }
+        
+        if (!keyExists || !certExists) {
             console.log('🔐 SSL certificates not found.');
             console.log('   Run: node generate-cert.js');
             return null;
