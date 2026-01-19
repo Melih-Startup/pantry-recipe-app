@@ -1029,34 +1029,29 @@ const localIP = getLocalIPAddress();
 
 // Function to generate self-signed certificate for HTTPS (development only)
 function generateSelfSignedCert() {
+    // CRITICAL: Check for Vercel FIRST, before ANY other operations
+    // This must be the absolute first thing in the function
+    if (process.env.VERCEL === '1' || 
+        process.env.VERCEL_ENV || 
+        process.env.VERCEL_URL ||
+        (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task')) ||
+        (typeof process.cwd === 'function' && process.cwd().startsWith('/var/task')) ||
+        process.env.LAMBDA_TASK_ROOT ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME) {
+        return null;
+    }
+
     // #region agent log
     const vercelCheck = {
         VERCEL: process.env.VERCEL,
         VERCEL_ENV: process.env.VERCEL_ENV,
         VERCEL_URL: process.env.VERCEL_URL,
-        dirname: __dirname,
-        dirnameStartsWithVarTask: __dirname.startsWith('/var/task'),
+        dirname: typeof __dirname !== 'undefined' ? __dirname : 'undefined',
+        dirnameStartsWithVarTask: typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task'),
         requireMainIsModule: require.main === module
     };
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1031',message:'generateSelfSignedCert called',data:vercelCheck,timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1031',message:'generateSelfSignedCert called (not Vercel)',data:vercelCheck,timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
     // #endregion
-
-    // Don't try to create certs on Vercel (read-only filesystem)
-    // Check multiple ways to detect Vercel environment - check BEFORE any file operations
-    const isVercel = process.env.VERCEL === '1' || 
-                     process.env.VERCEL_ENV || 
-                     process.env.VERCEL_URL ||
-                     __dirname.startsWith('/var/task') || // Vercel's filesystem path
-                     process.env.LAMBDA_TASK_ROOT || // AWS Lambda (Vercel uses similar)
-                     process.cwd().startsWith('/var/task'); // Alternative check
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1042',message:'Vercel check result',data:{isVercel:isVercel,willReturnEarly:isVercel},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
-
-    if (isVercel) {
-        return null;
-    }
     
     const certDir = path.join(__dirname, 'certs');
     const keyPath = path.join(certDir, 'key.pem');
