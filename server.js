@@ -1234,7 +1234,12 @@ function generateSelfSignedCert() {
     } catch (err) {
         // CRITICAL: Catch ANY error (including filesystem errors on Vercel) and return null
         // This prevents the entire server from crashing
+        // This catch block handles:
+        // - mkdirSync errors (ENOENT on Vercel's read-only filesystem)
+        // - Any other filesystem errors
+        // - Any other errors in the function
         // Don't log the error to avoid noise - just return null silently
+        // This is the final safety net - even if all Vercel detection fails, this will catch the error
         return null;
     }
 }
