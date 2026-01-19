@@ -1029,49 +1029,55 @@ const localIP = getLocalIPAddress();
 
 // Function to generate self-signed certificate for HTTPS (development only)
 function generateSelfSignedCert() {
-    // CRITICAL: Check for Vercel FIRST, before ANY other operations
-    // This must be the absolute first thing in the function
-    if (process.env.VERCEL === '1' || 
-        process.env.VERCEL_ENV || 
-        process.env.VERCEL_URL ||
-        (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task')) ||
-        (typeof process.cwd === 'function' && process.cwd().startsWith('/var/task')) ||
-        process.env.LAMBDA_TASK_ROOT ||
-        process.env.AWS_LAMBDA_FUNCTION_NAME) {
-        return null;
-    }
+    // CRITICAL: Wrap entire function in try-catch to prevent ANY crash
+    try {
+        // CRITICAL: Check for Vercel FIRST, before ANY other operations
+        // This must be the absolute first thing in the function
+        if (process.env.VERCEL === '1' || 
+            process.env.VERCEL_ENV || 
+            process.env.VERCEL_URL ||
+            (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task')) ||
+            (typeof process.cwd === 'function' && process.cwd().startsWith('/var/task')) ||
+            process.env.LAMBDA_TASK_ROOT ||
+            process.env.AWS_LAMBDA_FUNCTION_NAME) {
+            return null;
+        }
 
-    // #region agent log
-    const vercelCheck = {
-        VERCEL: process.env.VERCEL,
-        VERCEL_ENV: process.env.VERCEL_ENV,
-        VERCEL_URL: process.env.VERCEL_URL,
-        dirname: typeof __dirname !== 'undefined' ? __dirname : 'undefined',
-        dirnameStartsWithVarTask: typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task'),
-        requireMainIsModule: require.main === module
-    };
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1031',message:'generateSelfSignedCert called (not Vercel)',data:vercelCheck,timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
-    
-    const certDir = path.join(__dirname, 'certs');
+        // #region agent log
+        const vercelCheck = {
+            VERCEL: process.env.VERCEL,
+            VERCEL_ENV: process.env.VERCEL_ENV,
+            VERCEL_URL: process.env.VERCEL_URL,
+            dirname: typeof __dirname !== 'undefined' ? __dirname : 'undefined',
+            dirnameStartsWithVarTask: typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task'),
+            requireMainIsModule: require.main === module
+        };
+        fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1031',message:'generateSelfSignedCert called (not Vercel)',data:vercelCheck,timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
+        
+        const certDir = path.join(__dirname, 'certs');
     const keyPath = path.join(certDir, 'key.pem');
     const certPath = path.join(certDir, 'cert.pem');
     
     // Create certs directory if it doesn't exist (only locally)
-    // Wrap in try-catch as final safety net
-    if (!fs.existsSync(certDir)) {
-        try {
-            fs.mkdirSync(certDir, { recursive: true });
-        } catch (err) {
-            // If we can't create the directory (e.g., on Vercel or read-only filesystem), just return null
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1058',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
-            // #endregion
-            if (err.code === 'ENOENT' || err.code === 'EACCES' || err.code === 'EROFS') {
+    // CRITICAL: Wrap ALL file operations in try-catch to prevent crashes on Vercel
+    try {
+        if (!fs.existsSync(certDir)) {
+            try {
+                fs.mkdirSync(certDir, { recursive: true });
+            } catch (err) {
+                // If we can't create the directory (e.g., on Vercel or read-only filesystem), just return null
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1062',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+                // #endregion
+                // Always return null for any filesystem error - don't throw
                 return null;
             }
-            throw err;
         }
+    } catch (err) {
+        // Catch ANY error during directory operations and return null
+        // This prevents the entire server from crashing
+        return null;
     }
     
     // Check if certificates already exist
@@ -1107,6 +1113,12 @@ function generateSelfSignedCert() {
     } catch (err) {
         console.log('⚠️  Could not read SSL certificates.');
         console.log('   Run: node generate-cert.js to generate them.');
+        return null;
+    }
+    } catch (err) {
+        // CRITICAL: Catch ANY error (including filesystem errors on Vercel) and return null
+        // This prevents the entire server from crashing
+        // Don't log the error to avoid noise - just return null silently
         return null;
     }
 }
