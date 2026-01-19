@@ -18,7 +18,14 @@ const app = express();
 const PORT = 3000;
 const HTTPS_PORT = 3443;
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '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';
+// #region agent log
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const isVercelEnv = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:21',message:'GROQ_API_KEY initialization',data:{hasKey:!!GROQ_API_KEY,keyLength:GROQ_API_KEY?.length||0,isVercel:!!isVercelEnv,envKeys:Object.keys(process.env).filter(k=>k.includes('GROQ')).join(',')},timestamp:Date.now(),sessionId:'debug-session',runId:'init',hypothesisId:'A'})}).catch(()=>{});
+// #endregion
+if (!GROQ_API_KEY) {
+    console.warn('⚠️  GROQ_API_KEY not set. Groq API features will not work.');
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'pantry-pal-secret-key-change-in-production';
 
 // OAuth configuration (set via environment variables or use defaults for development)
@@ -626,6 +633,14 @@ app.post('/api/generate-recipe', async (req, res) => {
         userMessage += `\n\nBudget constraint: I have a budget of ${budget} for additional ingredients I might need to buy.`;
     }
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:636',message:'Recipe generation - before API call',data:{hasApiKey:!!GROQ_API_KEY,apiKeyLength:GROQ_API_KEY?.length||0,hasIngredients:!!ingredients,ingredientsLength:ingredients?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'recipe-gen',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+
+    if (!GROQ_API_KEY) {
+        return res.status(500).json({ error: 'Groq API key not configured. Please set GROQ_API_KEY environment variable.' });
+    }
+
     try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -755,6 +770,14 @@ app.get('/api/search-reviews', async (req, res) => {
         return res.status(400).json({ error: 'Recipe name required' });
     }
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:761',message:'Reviews fetch - before API call',data:{hasApiKey:!!GROQ_API_KEY,recipe:recipe},timestamp:Date.now(),sessionId:'debug-session',runId:'reviews',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+
+    if (!GROQ_API_KEY) {
+        return res.status(500).json({ error: 'Groq API key not configured. Please set GROQ_API_KEY environment variable.' });
+    }
+
     try {
         // Use Groq to search and summarize real reviews from the web
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -846,6 +869,14 @@ app.post('/api/scan-pantry', async (req, res) => {
         return res.status(400).json({ error: 'Image required' });
     }
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:852',message:'Pantry scan - before API call',data:{hasApiKey:!!GROQ_API_KEY,hasImage:!!imageBase64,imageLength:imageBase64?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'pantry-scan',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+
+    if (!GROQ_API_KEY) {
+        return res.status(500).json({ error: 'Groq API key not configured. Please set GROQ_API_KEY environment variable.' });
+    }
+
     try {
         // Remove data URL prefix if present
         const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -922,6 +953,14 @@ app.post('/api/chat', async (req, res) => {
         return res.status(400).json({ error: 'Message required' });
     }
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:928',message:'Chat - before API call',data:{hasApiKey:!!GROQ_API_KEY,hasMessage:!!message,messageLength:message?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'chat',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+
+    if (!GROQ_API_KEY) {
+        return res.status(500).json({ error: 'Groq API key not configured. Please set GROQ_API_KEY environment variable.' });
+    }
+
     try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -990,8 +1029,32 @@ const localIP = getLocalIPAddress();
 
 // Function to generate self-signed certificate for HTTPS (development only)
 function generateSelfSignedCert() {
+    // #region agent log
+    const vercelCheck = {
+        VERCEL: process.env.VERCEL,
+        VERCEL_ENV: process.env.VERCEL_ENV,
+        VERCEL_URL: process.env.VERCEL_URL,
+        dirname: __dirname,
+        dirnameStartsWithVarTask: __dirname.startsWith('/var/task'),
+        requireMainIsModule: require.main === module
+    };
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1031',message:'generateSelfSignedCert called',data:vercelCheck,timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
+
     // Don't try to create certs on Vercel (read-only filesystem)
-    if (process.env.VERCEL === '1' || process.env.VERCEL_ENV) {
+    // Check multiple ways to detect Vercel environment - check BEFORE any file operations
+    const isVercel = process.env.VERCEL === '1' || 
+                     process.env.VERCEL_ENV || 
+                     process.env.VERCEL_URL ||
+                     __dirname.startsWith('/var/task') || // Vercel's filesystem path
+                     process.env.LAMBDA_TASK_ROOT || // AWS Lambda (Vercel uses similar)
+                     process.cwd().startsWith('/var/task'); // Alternative check
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1042',message:'Vercel check result',data:{isVercel:isVercel,willReturnEarly:isVercel},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
+
+    if (isVercel) {
         return null;
     }
     
@@ -1000,8 +1063,20 @@ function generateSelfSignedCert() {
     const certPath = path.join(certDir, 'cert.pem');
     
     // Create certs directory if it doesn't exist (only locally)
+    // Wrap in try-catch as final safety net
     if (!fs.existsSync(certDir)) {
-        fs.mkdirSync(certDir, { recursive: true });
+        try {
+            fs.mkdirSync(certDir, { recursive: true });
+        } catch (err) {
+            // If we can't create the directory (e.g., on Vercel or read-only filesystem), just return null
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1058',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
+            if (err.code === 'ENOENT' || err.code === 'EACCES' || err.code === 'EROFS') {
+                return null;
+            }
+            throw err;
+        }
     }
     
     // Check if certificates already exist
@@ -1042,7 +1117,12 @@ function generateSelfSignedCert() {
 }
 
 // Only start server if running directly (not as a module for Vercel)
-if (require.main === module) {
+// #region agent log
+const isMainModule = require.main === module;
+fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1119',message:'Server startup check',data:{isMainModule:isMainModule,isVercel:!!isVercel,willStartServer:isMainModule&&!isVercel},timestamp:Date.now(),sessionId:'debug-session',runId:'server-init',hypothesisId:'G'})}).catch(()=>{});
+// #endregion
+
+if (require.main === module && !isVercel) {
     // Start HTTP server (for localhost/desktop)
     const httpServer = http.createServer(app);
     httpServer.listen(PORT, '0.0.0.0', () => {
@@ -1055,6 +1135,7 @@ if (require.main === module) {
     });
 
     // Try to start HTTPS server (for mobile camera access)
+    // Only call generateSelfSignedCert if we're definitely not on Vercel
     const sslCert = generateSelfSignedCert();
     if (sslCert) {
         const httpsServer = https.createServer(sslCert, app);
