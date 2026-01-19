@@ -1032,18 +1032,37 @@ const localIP = getLocalIPAddress();
 // CRITICAL: This function should NEVER run on Vercel - it will crash
 // On Vercel, this function immediately returns null without doing anything
 function generateSelfSignedCert() {
-    // CRITICAL: If we're on Vercel, return null IMMEDIATELY - before ANY other code
-    // Check this at the absolute first line of the function
-    // This prevents ANY filesystem operations on Vercel's read-only filesystem
+    // CRITICAL: Check for Vercel at the ABSOLUTE FIRST LINE - before ANY other code
+    // This must execute before ANY try-catch, before ANY variable declarations, before ANYTHING
+    // Check multiple indicators to be absolutely sure
+    
+    // Check 1: Environment variables (most reliable)
     if (typeof process !== 'undefined' && process.env) {
-        if (process.env.VERCEL === '1' || process.env.VERCEL_ENV || process.env.VERCEL_URL) {
+        if (process.env.VERCEL === '1' || 
+            process.env.VERCEL_ENV || 
+            process.env.VERCEL_URL ||
+            process.env.LAMBDA_TASK_ROOT ||
+            process.env.AWS_LAMBDA_FUNCTION_NAME) {
             return null;
         }
     }
     
-    // Check __dirname - this is the most reliable way to detect Vercel/Lambda
+    // Check 2: __dirname path (most reliable for Lambda/Vercel)
     if (typeof __dirname !== 'undefined') {
         if (__dirname.includes('/var/task') || __dirname.startsWith('/var/task')) {
+            return null;
+        }
+    }
+    
+    // Check 3: process.cwd() as additional safety
+    if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
+        try {
+            const cwd = process.cwd();
+            if (cwd && (cwd.includes('/var/task') || cwd.startsWith('/var/task'))) {
+                return null;
+            }
+        } catch (e) {
+            // If we can't check, assume Vercel and return null
             return null;
         }
     }
