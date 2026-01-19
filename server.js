@@ -1032,47 +1032,46 @@ const localIP = getLocalIPAddress();
 // CRITICAL: This function should NEVER run on Vercel - it will crash
 // On Vercel, this function immediately returns null without doing anything
 // RENAMED to force Vercel cache refresh
+// CRITICAL: This function MUST be completely fail-safe on Vercel
+// Even if Vercel uses old cached code, the outermost try-catch will catch any errors
 function generateSelfSignedCert_v2() {
-    // CRITICAL: Check for Vercel at the ABSOLUTE FIRST LINE - before ANY other code
-    // This must execute before ANY try-catch, before ANY variable declarations, before ANYTHING
-    // Check multiple indicators to be absolutely sure
-    
-    // Check 1: Environment variables (most reliable)
-    if (typeof process !== 'undefined' && process.env) {
-        if (process.env.VERCEL === '1' || 
-            process.env.VERCEL_ENV || 
-            process.env.VERCEL_URL ||
-            process.env.LAMBDA_TASK_ROOT ||
-            process.env.AWS_LAMBDA_FUNCTION_NAME) {
-            return null;
-        }
-    }
-    
-    // Check 2: __dirname path (most reliable for Lambda/Vercel)
-    if (typeof __dirname !== 'undefined') {
-        if (__dirname.includes('/var/task') || __dirname.startsWith('/var/task')) {
-            return null;
-        }
-    }
-    
-    // Check 3: process.cwd() as additional safety
-    if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
-        try {
-            const cwd = process.cwd();
-            if (cwd && (cwd.includes('/var/task') || cwd.startsWith('/var/task'))) {
+    // CRITICAL: Wrap ENTIRE function in try-catch FIRST - before ANY other code
+    // This is the absolute first thing - catches errors even if Vercel detection fails
+    try {
+        // CRITICAL: Check for Vercel at the ABSOLUTE FIRST LINE - before ANY other code
+        // This must execute before ANY variable declarations, before ANYTHING
+        // Check multiple indicators to be absolutely sure
+        
+        // Check 1: Environment variables (most reliable)
+        if (typeof process !== 'undefined' && process.env) {
+            if (process.env.VERCEL === '1' || 
+                process.env.VERCEL_ENV || 
+                process.env.VERCEL_URL ||
+                process.env.LAMBDA_TASK_ROOT ||
+                process.env.AWS_LAMBDA_FUNCTION_NAME) {
                 return null;
             }
-        } catch (e) {
-            // If we can't check, assume Vercel and return null
-            return null;
         }
-    }
-    
-    // CRITICAL: Wrap ENTIRE function body in try-catch as the outermost layer
-    // This catches ANY error, including errors during file operations
-    // Even if Vercel detection fails, this will catch the mkdirSync error
-    // This is the final safety net - even if all Vercel detection fails, this will catch the error
-    try {
+        
+        // Check 2: __dirname path (most reliable for Lambda/Vercel)
+        if (typeof __dirname !== 'undefined') {
+            if (__dirname.includes('/var/task') || __dirname.startsWith('/var/task')) {
+                return null;
+            }
+        }
+        
+        // Check 3: process.cwd() as additional safety
+        if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
+            try {
+                const cwd = process.cwd();
+                if (cwd && (cwd.includes('/var/task') || cwd.startsWith('/var/task'))) {
+                    return null;
+                }
+            } catch (e) {
+                // If we can't check, assume Vercel and return null
+                return null;
+            }
+        }
 
         // #region agent log
         const vercelCheck = {
