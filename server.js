@@ -1028,7 +1028,25 @@ function getLocalIPAddress() {
 const localIP = getLocalIPAddress();
 
 // Function to generate self-signed certificate for HTTPS (development only)
+// CRITICAL: This function should NEVER run on Vercel - it will crash
 function generateSelfSignedCert() {
+    // IMMEDIATE return - check path BEFORE anything else (even before try-catch)
+    // This is the most reliable way to detect Vercel
+    try {
+        if (typeof __dirname !== 'undefined' && (__dirname.includes('/var/task') || __dirname.startsWith('/var/task'))) {
+            return null;
+        }
+        if (typeof process !== 'undefined' && process.cwd && typeof process.cwd === 'function') {
+            const cwd = process.cwd();
+            if (cwd.includes('/var/task') || cwd.startsWith('/var/task')) {
+                return null;
+            }
+        }
+    } catch (e) {
+        // If we can't check, assume Vercel and return null
+        return null;
+    }
+    
     // CRITICAL: Wrap entire function in try-catch to prevent ANY crash
     try {
         // CRITICAL: Check for Vercel FIRST, before ANY other operations
