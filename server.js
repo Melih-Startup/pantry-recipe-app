@@ -1056,29 +1056,35 @@ function generateSelfSignedCert() {
         // #endregion
         
         const certDir = path.join(__dirname, 'certs');
-    const keyPath = path.join(certDir, 'key.pem');
-    const certPath = path.join(certDir, 'cert.pem');
-    
-    // Create certs directory if it doesn't exist (only locally)
-    // CRITICAL: Wrap ALL file operations in try-catch to prevent crashes on Vercel
-    try {
-        if (!fs.existsSync(certDir)) {
-            try {
-                fs.mkdirSync(certDir, { recursive: true });
-            } catch (err) {
-                // If we can't create the directory (e.g., on Vercel or read-only filesystem), just return null
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1062',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
-                // #endregion
-                // Always return null for any filesystem error - don't throw
-                return null;
-            }
+        const keyPath = path.join(certDir, 'key.pem');
+        const certPath = path.join(certDir, 'cert.pem');
+        
+        // CRITICAL: Check if path contains /var/task BEFORE any file operations
+        // This is an additional safety check in case Vercel detection failed
+        if (certDir.includes('/var/task') || certDir.includes('\\var\\task')) {
+            return null;
         }
-    } catch (err) {
-        // Catch ANY error during directory operations and return null
-        // This prevents the entire server from crashing
-        return null;
-    }
+        
+        // Create certs directory if it doesn't exist (only locally)
+        // CRITICAL: Wrap ALL file operations in try-catch to prevent crashes on Vercel
+        try {
+            if (!fs.existsSync(certDir)) {
+                try {
+                    fs.mkdirSync(certDir, { recursive: true });
+                } catch (err) {
+                    // If we can't create the directory (e.g., on Vercel or read-only filesystem), just return null
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1067',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+                    // #endregion
+                    // Always return null for any filesystem error - don't throw
+                    return null;
+                }
+            }
+        } catch (err) {
+            // Catch ANY error during directory operations and return null
+            // This prevents the entire server from crashing
+            return null;
+        }
     
     // Check if certificates already exist
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
@@ -1153,10 +1159,19 @@ if (require.main === module && !isVercel) {
                                  typeof __dirname !== 'undefined' && 
                                  !__dirname.startsWith('/var/task');
     
+    // NEVER call generateSelfSignedCert on Vercel - it will crash
+    // Even with all the checks, if Vercel is using old cached code, it will fail
+    // So we check multiple times and wrap in try-catch
     if (definitelyNotVercel) {
         try {
-            sslCert = generateSelfSignedCert();
+            // Double-check we're not on Vercel right before calling
+            if (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task')) {
+                sslCert = null;
+            } else {
+                sslCert = generateSelfSignedCert();
+            }
         } catch (err) {
+            // Catch ANY error - don't let it crash the server
             console.log('⚠️  Could not generate SSL certificate:', err.message);
             sslCert = null;
         }
