@@ -1242,21 +1242,40 @@ if (require.main === module && !isVercel) {
     // NEVER call generateSelfSignedCert on Vercel - it will crash
     // Even with all the checks, if Vercel is using old cached code, it will fail
     // So we check multiple times and wrap in try-catch
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1233',message:'About to check if should call generateSelfSignedCert',data:{definitelyNotVercel:definitelyNotVercel,isVercel:!!isVercel,dirname:typeof __dirname !== 'undefined' ? __dirname : 'undefined',vercelEnv:process.env.VERCEL,vercelUrl:process.env.VERCEL_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-check',hypothesisId:'H'})}).catch(()=>{});
+    // #endregion
+    
     if (definitelyNotVercel) {
         try {
             // Double-check we're not on Vercel right before calling
             if (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task')) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1242',message:'Blocked generateSelfSignedCert - dirname check failed',data:{dirname:__dirname},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-blocked',hypothesisId:'H'})}).catch(()=>{});
+                // #endregion
                 sslCert = null;
             } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1246',message:'Calling generateSelfSignedCert',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-start',hypothesisId:'H'})}).catch(()=>{});
+                // #endregion
                 sslCert = generateSelfSignedCert();
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1249',message:'generateSelfSignedCert returned',data:{sslCertIsNull:sslCert === null},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-end',hypothesisId:'H'})}).catch(()=>{});
+                // #endregion
             }
         } catch (err) {
             // Catch ANY error - don't let it crash the server
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1252',message:'Error in generateSelfSignedCert call',data:{error:err.message,stack:err.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-error',hypothesisId:'H'})}).catch(()=>{});
+            // #endregion
             console.log('⚠️  Could not generate SSL certificate:', err.message);
             sslCert = null;
         }
     } else {
         // On Vercel or uncertain environment - don't even try
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1260',message:'Skipping generateSelfSignedCert - not definitelyNotVercel',data:{definitelyNotVercel:definitelyNotVercel,isVercel:!!isVercel},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-skipped',hypothesisId:'H'})}).catch(()=>{});
+        // #endregion
         sslCert = null;
     }
     if (sslCert) {
