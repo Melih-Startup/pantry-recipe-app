@@ -1067,41 +1067,11 @@ function generateSelfSignedCert_v2() {
             return null;
         }
     }
-    // CRITICAL: Check for Vercel at the ABSOLUTE FIRST LINE - before ANY other code
-    // This must be the very first thing that executes
-    if (typeof process !== 'undefined' && process.env) {
-        if (process.env.VERCEL === '1' || 
-            process.env.VERCEL_ENV || 
-            process.env.VERCEL_URL ||
-            process.env.LAMBDA_TASK_ROOT ||
-            process.env.AWS_LAMBDA_FUNCTION_NAME) {
-            return null;
-        }
-    }
-    
-    // Check __dirname path - this is the most reliable Vercel detection
-    if (typeof __dirname !== 'undefined') {
-        if (__dirname.includes('/var/task') || __dirname.startsWith('/var/task')) {
-            return null;
-        }
-    }
-    
-    // Check process.cwd() as additional safety
-    if (typeof process !== 'undefined' && process.cwd && typeof process.cwd === 'function') {
-        try {
-            const cwd = process.cwd();
-            if (cwd.includes('/var/task') || cwd.startsWith('/var/task')) {
-                return null;
-            }
-        } catch (e) {
-            // If we can't check cwd, assume Vercel and return null
-            return null;
-        }
-    }
     
     // CRITICAL: Wrap ENTIRE function body in try-catch as the outermost layer
     // This catches ANY error, including errors during file operations
     // Even if Vercel detection fails, this will catch the mkdirSync error
+    // This is the final safety net - even if all Vercel detection fails, this will catch the error
     try {
 
         // #region agent log
