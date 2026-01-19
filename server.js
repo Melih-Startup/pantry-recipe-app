@@ -1269,18 +1269,21 @@ if (require.main === module && !isVercel) {
     
     // CRITICAL: Check for Vercel FIRST - if we're on Vercel, skip certificate generation entirely
     // This prevents ANY filesystem operations on Vercel's read-only filesystem
+    // Check multiple indicators to be absolutely sure
     const isDefinitelyVercel = isVercel || 
                                 process.env.VERCEL === '1' || 
                                 process.env.VERCEL_ENV || 
                                 process.env.VERCEL_URL ||
                                 process.env.LAMBDA_TASK_ROOT ||
-                                (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task'));
+                                process.env.AWS_LAMBDA_FUNCTION_NAME ||
+                                (typeof __dirname !== 'undefined' && (__dirname.startsWith('/var/task') || __dirname.includes('/var/task')));
     
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1256',message:'HTTPS certificate check',data:{isDefinitelyVercel:isDefinitelyVercel,isVercel:!!isVercel,dirname:typeof __dirname !== 'undefined' ? __dirname : 'undefined',vercelEnv:process.env.VERCEL,vercelUrl:process.env.VERCEL_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-check',hypothesisId:'I'})}).catch(()=>{});
     // #endregion
     
     // ONLY try to generate certificates if we're 100% sure we're NOT on Vercel
+    // If we're on Vercel, sslCert stays null and we skip HTTPS server (Vercel provides HTTPS automatically)
     if (!isDefinitelyVercel) {
         try {
             // Double-check we're not on Vercel right before calling
