@@ -1136,7 +1136,16 @@ if (require.main === module && !isVercel) {
 
     // Try to start HTTPS server (for mobile camera access)
     // Only call generateSelfSignedCert if we're definitely not on Vercel
-    const sslCert = generateSelfSignedCert();
+    // Double-check we're not on Vercel before calling
+    let sslCert = null;
+    if (!isVercel && !process.env.VERCEL && !process.env.VERCEL_ENV && !process.env.VERCEL_URL) {
+        try {
+            sslCert = generateSelfSignedCert();
+        } catch (err) {
+            console.log('⚠️  Could not generate SSL certificate:', err.message);
+            sslCert = null;
+        }
+    }
     if (sslCert) {
         const httpsServer = https.createServer(sslCert, app);
         httpsServer.on('error', (err) => {
