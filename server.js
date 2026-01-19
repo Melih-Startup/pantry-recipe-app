@@ -1029,7 +1029,23 @@ const localIP = getLocalIPAddress();
 
 // Function to generate self-signed certificate for HTTPS (development only)
 // CRITICAL: This function should NEVER run on Vercel - it will crash
+// On Vercel, this function immediately returns null without doing anything
 function generateSelfSignedCert() {
+    // CRITICAL: If we're on Vercel, return null IMMEDIATELY - before ANY other code
+    // Check this at the absolute first line of the function
+    // This prevents ANY filesystem operations on Vercel's read-only filesystem
+    if (typeof process !== 'undefined' && process.env) {
+        if (process.env.VERCEL === '1' || process.env.VERCEL_ENV || process.env.VERCEL_URL) {
+            return null;
+        }
+    }
+    
+    // Check __dirname - this is the most reliable way to detect Vercel/Lambda
+    if (typeof __dirname !== 'undefined') {
+        if (__dirname.includes('/var/task') || __dirname.startsWith('/var/task')) {
+            return null;
+        }
+    }
     // CRITICAL: Check for Vercel at the ABSOLUTE FIRST LINE - before ANY other code
     // This must be the very first thing that executes
     if (typeof process !== 'undefined' && process.env) {
