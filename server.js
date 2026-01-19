@@ -1031,7 +1031,8 @@ const localIP = getLocalIPAddress();
 // Function to generate self-signed certificate for HTTPS (development only)
 // CRITICAL: This function should NEVER run on Vercel - it will crash
 // On Vercel, this function immediately returns null without doing anything
-function generateSelfSignedCert() {
+// RENAMED to force Vercel cache refresh
+function generateSelfSignedCert_v2() {
     // CRITICAL: Check for Vercel at the ABSOLUTE FIRST LINE - before ANY other code
     // This must execute before ANY try-catch, before ANY variable declarations, before ANYTHING
     // Check multiple indicators to be absolutely sure
@@ -1296,7 +1297,7 @@ if (require.main === module && !isVercel) {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1246',message:'Calling generateSelfSignedCert',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-start',hypothesisId:'H'})}).catch(()=>{});
                 // #endregion
-                sslCert = generateSelfSignedCert();
+                sslCert = generateSelfSignedCert_v2();
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1249',message:'generateSelfSignedCert returned',data:{sslCertIsNull:sslCert === null},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-end',hypothesisId:'H'})}).catch(()=>{});
                 // #endregion
