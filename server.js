@@ -1251,25 +1251,25 @@ if (require.main === module && !isVercel) {
     });
 
     // Try to start HTTPS server (for mobile camera access)
-    // NEVER call generateSelfSignedCert on Vercel - it will try to create directories
-    // Only call if we're 100% sure we're NOT on Vercel
+    // CRITICAL: On Vercel, NEVER try to generate certificates - it will crash
+    // Vercel provides HTTPS automatically, so we don't need self-signed certs
     let sslCert = null;
-    const definitelyNotVercel = !isVercel && 
-                                 !process.env.VERCEL && 
-                                 !process.env.VERCEL_ENV && 
-                                 !process.env.VERCEL_URL &&
-                                 !process.env.LAMBDA_TASK_ROOT &&
-                                 typeof __dirname !== 'undefined' && 
-                                 !__dirname.startsWith('/var/task');
     
-    // NEVER call generateSelfSignedCert on Vercel - it will crash
-    // Even with all the checks, if Vercel is using old cached code, it will fail
-    // So we check multiple times and wrap in try-catch
+    // CRITICAL: Check for Vercel FIRST - if we're on Vercel, skip certificate generation entirely
+    // This prevents ANY filesystem operations on Vercel's read-only filesystem
+    const isDefinitelyVercel = isVercel || 
+                                process.env.VERCEL === '1' || 
+                                process.env.VERCEL_ENV || 
+                                process.env.VERCEL_URL ||
+                                process.env.LAMBDA_TASK_ROOT ||
+                                (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task'));
+    
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1233',message:'About to check if should call generateSelfSignedCert',data:{definitelyNotVercel:definitelyNotVercel,isVercel:!!isVercel,dirname:typeof __dirname !== 'undefined' ? __dirname : 'undefined',vercelEnv:process.env.VERCEL,vercelUrl:process.env.VERCEL_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-call-check',hypothesisId:'H'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1256',message:'HTTPS certificate check',data:{isDefinitelyVercel:isDefinitelyVercel,isVercel:!!isVercel,dirname:typeof __dirname !== 'undefined' ? __dirname : 'undefined',vercelEnv:process.env.VERCEL,vercelUrl:process.env.VERCEL_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-check',hypothesisId:'I'})}).catch(()=>{});
     // #endregion
     
-    if (definitelyNotVercel) {
+    // ONLY try to generate certificates if we're 100% sure we're NOT on Vercel
+    if (!isDefinitelyVercel) {
         try {
             // Double-check we're not on Vercel right before calling
             if (typeof __dirname !== 'undefined' && __dirname.startsWith('/var/task')) {
