@@ -1130,16 +1130,27 @@ if (require.main === module && !isVercel) {
     });
 
     // Try to start HTTPS server (for mobile camera access)
-    // Only call generateSelfSignedCert if we're definitely not on Vercel
-    // Double-check we're not on Vercel before calling
+    // NEVER call generateSelfSignedCert on Vercel - it will try to create directories
+    // Only call if we're 100% sure we're NOT on Vercel
     let sslCert = null;
-    if (!isVercel && !process.env.VERCEL && !process.env.VERCEL_ENV && !process.env.VERCEL_URL) {
+    const definitelyNotVercel = !isVercel && 
+                                 !process.env.VERCEL && 
+                                 !process.env.VERCEL_ENV && 
+                                 !process.env.VERCEL_URL &&
+                                 !process.env.LAMBDA_TASK_ROOT &&
+                                 typeof __dirname !== 'undefined' && 
+                                 !__dirname.startsWith('/var/task');
+    
+    if (definitelyNotVercel) {
         try {
             sslCert = generateSelfSignedCert();
         } catch (err) {
             console.log('⚠️  Could not generate SSL certificate:', err.message);
             sslCert = null;
         }
+    } else {
+        // On Vercel or uncertain environment - don't even try
+        sslCert = null;
     }
     if (sslCert) {
         const httpsServer = https.createServer(sslCert, app);
