@@ -1174,10 +1174,16 @@ function generateSelfSignedCert() {
         }
         
         // Certificates exist, read them
-        return {
-            key: fs.readFileSync(keyPath),
-            cert: fs.readFileSync(certPath)
-        };
+        // CRITICAL: Wrap readFileSync in try-catch
+        try {
+            const key = fs.readFileSync(keyPath);
+            const cert = fs.readFileSync(certPath);
+            return { key, cert };
+        } catch (err) {
+            // If readFileSync fails (e.g., on Vercel), return null
+            console.log('⚠️  Error reading certificates:', err.message);
+            return null;
+        }
     } catch (err) {
         console.log('⚠️  Could not read SSL certificates.');
         console.log('   Run: node generate-cert.js to generate them.');
