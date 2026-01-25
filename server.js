@@ -1061,6 +1061,56 @@ function getLocalIPAddress() {
 
 const localIP = getLocalIPAddress();
 
+// CRITICAL: Prevent ANY certificate generation on Vercel at module level
+// This check happens BEFORE the function is even defined
+// If Vercel is detected, we'll override any certificate generation attempts
+let IS_VERCEL = false;
+try {
+    if (typeof process !== 'undefined' && process.env) {
+        IS_VERCEL = IS_VERCEL || process.env.VERCEL === '1' || !!process.env.VERCEL_ENV || !!process.env.VERCEL_URL;
+    }
+    if (typeof __dirname !== 'undefined') {
+        const dirnameStr = String(__dirname);
+        IS_VERCEL = IS_VERCEL || dirnameStr.includes('/var/task') || dirnameStr.startsWith('/var/task');
+    }
+    if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
+        try {
+            const cwd = process.cwd();
+            IS_VERCEL = IS_VERCEL || (cwd && (cwd.includes('/var/task') || cwd.startsWith('/var/task')));
+        } catch(e) {
+            IS_VERCEL = true; // If we can't check, assume Vercel
+        }
+    }
+} catch(e) {
+    IS_VERCEL = true; // If any check fails, assume Vercel to be safe
+}
+
+// COMPATIBILITY LAYER: Create old function name for backwards compatibility
+// This prevents crashes if Vercel is running old cached code that calls generateSelfSignedCert
+// CRITICAL: This function MUST return null immediately on Vercel - no filesystem operations
+function generateSelfSignedCert() {
+    // CRITICAL: Wrap everything in try-catch to prevent any crashes
+    try {
+        // If on Vercel, return null immediately - don't even try
+        if (IS_VERCEL) {
+            return null;
+        }
+        // Additional safety check - if __dirname contains /var/task, return null
+        if (typeof __dirname !== 'undefined') {
+            const dirnameStr = String(__dirname);
+            if (dirnameStr.includes('/var/task') || dirnameStr.startsWith('/var/task')) {
+                return null;
+            }
+        }
+        // If not on Vercel, call the new function
+        return generateSelfSignedCert_v2();
+    } catch (err) {
+        // CRITICAL: Catch ANY error and return null - never crash
+        // This is the ultimate safety net
+        return null;
+    }
+}
+
 // Function to generate self-signed certificate for HTTPS (development only)
 // CRITICAL: This function should NEVER run on Vercel - it will crash
 // On Vercel, this function immediately returns null without doing anything
@@ -1068,9 +1118,31 @@ const localIP = getLocalIPAddress();
 // CRITICAL: This function MUST be completely fail-safe on Vercel
 // Even if Vercel uses old cached code, the outermost try-catch will catch any errors
 function generateSelfSignedCert_v2() {
+    // ULTRA-CRITICAL: If IS_VERCEL is true, return immediately - no checks needed
+    if (IS_VERCEL) {
+        return null;
+    }
     // CRITICAL: Wrap ENTIRE function in try-catch FIRST - before ANY other code
     // This is the absolute first thing - catches errors even if Vercel detection fails
     try {
+        // ULTRA-EMERGENCY CHECK: If we're on Vercel, return immediately
+        // This check happens before ANYTHING else, even before variable declarations
+        if (typeof process !== 'undefined' && process.env) {
+            if (process.env.VERCEL === '1' || process.env.VERCEL_ENV || process.env.VERCEL_URL) {
+                return null;
+            }
+        }
+        // Check process.cwd() immediately - most reliable
+        try {
+            if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
+                const cwd = process.cwd();
+                if (cwd && (cwd.includes('/var/task') || cwd.startsWith('/var/task'))) {
+                    return null;
+                }
+            }
+        } catch (e) {
+            return null; // If we can't check, assume Vercel
+        }
         // CRITICAL: Check for Vercel at the ABSOLUTE FIRST LINE - before ANY other code
         // This must execute before ANY variable declarations, before ANYTHING
         // Check multiple indicators to be absolutely sure
@@ -1331,14 +1403,28 @@ function generateSelfSignedCert_v2() {
 // Only start server if running directly (not as a module for Vercel)
 // CRITICAL: Check for Vercel at the absolute top level before ANY server startup code
 // This prevents certificate generation code from ever running on Vercel
-const isDefinitelyVercelAtTopLevel = (typeof __dirname !== 'undefined' && 
-                                      (String(__dirname).includes('/var/task') || String(__dirname).startsWith('/var/task'))) ||
-                                     process.env.VERCEL === '1' ||
-                                     process.env.VERCEL_ENV ||
-                                     process.env.VERCEL_URL ||
-                                     process.env.LAMBDA_TASK_ROOT ||
-                                     process.env.AWS_LAMBDA_FUNCTION_NAME ||
-                                     require.main !== module; // If not main module, we're being imported (e.g., by Vercel)
+// Check process.cwd() first as it's the most reliable indicator
+let isDefinitelyVercelAtTopLevel = false;
+try {
+    const cwd = typeof process !== 'undefined' && typeof process.cwd === 'function' ? process.cwd() : '';
+    if (cwd && (cwd.includes('/var/task') || cwd.startsWith('/var/task'))) {
+        isDefinitelyVercelAtTopLevel = true;
+    }
+} catch (e) {
+    // If we can't check cwd, assume Vercel
+    isDefinitelyVercelAtTopLevel = true;
+}
+
+// Additional checks
+isDefinitelyVercelAtTopLevel = isDefinitelyVercelAtTopLevel ||
+                                (typeof __dirname !== 'undefined' && 
+                                 (String(__dirname).includes('/var/task') || String(__dirname).startsWith('/var/task'))) ||
+                                process.env.VERCEL === '1' ||
+                                process.env.VERCEL_ENV ||
+                                process.env.VERCEL_URL ||
+                                process.env.LAMBDA_TASK_ROOT ||
+                                process.env.AWS_LAMBDA_FUNCTION_NAME ||
+                                require.main !== module; // If not main module, we're being imported (e.g., by Vercel)
 
 // #region agent log
 const isMainModule = require.main === module;
