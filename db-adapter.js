@@ -98,7 +98,13 @@ if (usePostgres) {
     console.log('✅ Connected to Supabase/Postgres database');
     
     // Initialize tables (Postgres uses SERIAL instead of AUTOINCREMENT)
-    initializePostgresTables(pool);
+    // CRITICAL: Don't await this - let it run in background to avoid blocking module load
+    // If initialization fails, it will be retried on first query
+    initializePostgresTables(pool).catch(err => {
+        console.error('⚠️  Database table initialization failed (will retry on first query):', err.message);
+        // Don't throw - allow the app to continue
+        // Tables will be created on first query if they don't exist
+    });
     
 } else if (isVercel) {
     // On Vercel but no DATABASE_URL - show error
@@ -194,20 +200,32 @@ async function initializePostgresTables(pool) {
             )
         `);
         
-        // Create indexes
-        await pool.query(`
-            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
-        `);
-        await pool.query(`
-            CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id)
-        `);
-        await pool.query(`
-            CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)
-        `);
+        // Create indexes (these may fail if they already exist, which is fine)
+        try {
+            await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+        } catch (e) {
+            // Index might already exist, ignore
+        }
+        try {
+            await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id)`);
+        } catch (e) {
+            // Index might already exist, ignore
+        }
+        try {
+            await pool.query(`CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)`);
+        } catch (e) {
+            // Index might already exist, ignore
+        }
         
         console.log('✅ Database tables initialized');
     } catch (err) {
-        console.error('Error initializing tables:', err);
+        // Log error but don't throw - allow app to continue
+        // Tables will be created on first query if they don't exist
+        console.error('⚠️  Error initializing tables (non-fatal):', err.message);
+        // Re-throw only if it's a critical connection error
+        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+            throw err;
+        }
     }
 }
 

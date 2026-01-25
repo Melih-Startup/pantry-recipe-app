@@ -1,24 +1,44 @@
 // Vercel serverless function wrapper for Express app
-// #region agent log
-try {
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/index.js:2',message:'Serverless function initialization start',data:{hasGroqKey:!!process.env.GROQ_API_KEY,isVercel:!!process.env.VERCEL,envKeys:Object.keys(process.env).filter(k=>k.includes('GROQ')||k.includes('DATABASE')).join(',')},timestamp:Date.now(),sessionId:'debug-session',runId:'serverless-init',hypothesisId:'A'})}).catch(()=>{});
-} catch(e) {}
-// #endregion
+// This file is the entry point for all API routes on Vercel
 
 let app;
+
+// Initialize the Express app with proper error handling
+// CRITICAL: Any unhandled errors here will cause FUNCTION_INVOCATION_FAILED
 try {
     app = require('../server');
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/index.js:10',message:'Serverless function initialization success',data:{appLoaded:!!app},timestamp:Date.now(),sessionId:'debug-session',runId:'serverless-init',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/index.js:13',message:'Serverless entrypoint identity',data:{dirname:typeof __dirname !== 'undefined' ? String(__dirname) : 'undefined',filename:typeof __filename !== 'undefined' ? String(__filename) : 'undefined',mainFilename:require.main?.filename ? String(require.main.filename) : 'undefined',isMain:require.main===module,vercelFlag:process.env.VERCEL||null,vercelEnv:process.env.VERCEL_ENV||null},timestamp:Date.now(),sessionId:'debug-session',runId:'serverless-id',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
+    
+    // Verify app was loaded successfully
+    if (!app) {
+        console.error('❌ Failed to load Express app from server.js');
+        // Create a minimal error handler app
+        const express = require('express');
+        app = express();
+        app.use((req, res) => {
+            res.status(500).json({ 
+                error: 'Server initialization failed',
+                message: 'The application failed to initialize properly. Please check server logs.'
+            });
+        });
+    }
 } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/index.js:13',message:'Serverless function initialization error',data:{error:error.message,stack:error.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'serverless-init',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    throw error;
+    // CRITICAL: Log the error but don't throw - create a fallback app instead
+    // Throwing here causes FUNCTION_INVOCATION_FAILED
+    console.error('❌ Error loading server.js:', error);
+    console.error('Stack trace:', error.stack);
+    
+    // Create a minimal Express app that returns errors
+    const express = require('express');
+    app = express();
+    app.use(express.json());
+    app.use((req, res) => {
+        res.status(500).json({ 
+            error: 'Server initialization error',
+            message: error.message,
+            // Only show stack in development
+            ...(process.env.VERCEL_ENV === 'development' && { stack: error.stack })
+        });
+    });
 }
 
 // Export the Express app as a serverless function
