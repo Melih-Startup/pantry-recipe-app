@@ -22,6 +22,10 @@ const PORT = 3000;
 const HTTPS_PORT = 3443;
 
 // #region agent log
+fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:24',message:'Module identity snapshot',data:{dirname:typeof __dirname !== 'undefined' ? String(__dirname) : 'undefined',filename:typeof __filename !== 'undefined' ? String(__filename) : 'undefined',isMain:require.main===module,mainFilename:require.main?.filename ? String(require.main.filename) : 'undefined',vercelEnv:process.env.VERCEL_ENV||null,vercelFlag:process.env.VERCEL||null,vercelUrl:process.env.VERCEL_URL||null},timestamp:Date.now(),sessionId:'debug-session',runId:'module-id',hypothesisId:'B'})}).catch(()=>{});
+// #endregion
+
+// #region agent log
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const isVercelEnv = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
 fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:21',message:'GROQ_API_KEY initialization',data:{hasKey:!!GROQ_API_KEY,keyLength:GROQ_API_KEY?.length||0,isVercel:!!isVercelEnv,envKeys:Object.keys(process.env).filter(k=>k.includes('GROQ')).join(',')},timestamp:Date.now(),sessionId:'debug-session',runId:'init',hypothesisId:'A'})}).catch(()=>{});
@@ -1071,7 +1075,24 @@ function generateSelfSignedCert_v2() {
         // This must execute before ANY variable declarations, before ANYTHING
         // Check multiple indicators to be absolutely sure
         
-        // Check 1: __dirname path FIRST (most reliable for Lambda/Vercel)
+        // Check 0: process.cwd() FIRST - most reliable for Vercel detection
+        // This check happens before any path operations or variable declarations
+        try {
+            if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
+                const cwd = process.cwd();
+                if (cwd && (cwd.includes('/var/task') || cwd.startsWith('/var/task'))) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1070',message:'Vercel detected via process.cwd() - early exit',data:{cwd:cwd},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'A'})}).catch(()=>{});
+                    // #endregion
+                    return null;
+                }
+            }
+        } catch (e) {
+            // If we can't check cwd, assume Vercel and return null
+            return null;
+        }
+        
+        // Check 1: __dirname path (most reliable for Lambda/Vercel)
         // This MUST be checked before any path operations
         if (typeof __dirname !== 'undefined') {
             const dirnameStr = String(__dirname);
@@ -1079,7 +1100,7 @@ function generateSelfSignedCert_v2() {
                 dirnameStr.startsWith('/var/task') ||
                 dirnameStr.includes('\\var\\task')) {
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1069',message:'Vercel detected via __dirname - early exit',data:{dirname:dirnameStr},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1089',message:'Vercel detected via __dirname - early exit',data:{dirname:dirnameStr},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'B'})}).catch(()=>{});
                 // #endregion
                 return null;
             }
@@ -1195,21 +1216,23 @@ function generateSelfSignedCert_v2() {
                     // Double-check one more time right before the call
                     const finalCheck = String(certDir);
                     if (finalCheck.includes('/var/task') || finalCheck.includes('\\var\\task')) {
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1204',message:'Blocked mkdirSync - final path check failed',data:{certDir:finalCheck},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'C'})}).catch(()=>{});
+                        // #endregion
                         return null;
                     }
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1208',message:'Attempting mkdirSync',data:{certDir:finalCheck},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'D'})}).catch(()=>{});
+                    // #endregion
                     fs.mkdirSync(certDir, { recursive: true });
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1167',message:'mkdirSync succeeded',data:{certDir:certDirStr},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1211',message:'mkdirSync succeeded',data:{certDir:certDirStr},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'E'})}).catch(()=>{});
                     // #endregion
                 } catch (err) {
-                    // CRITICAL: If error is ENOENT and path contains /var/task, this is definitely Vercel
-                    // Return null immediately without logging to avoid noise
-                    if (err.code === 'ENOENT' && (String(certDir).includes('/var/task') || String(certDir).includes('\\var\\task'))) {
-                        return null;
-                    }
-                    // For any other filesystem error, log and return null
+                    // CRITICAL: If error is ENOENT (or any error), this is likely Vercel
+                    // Return null immediately - don't throw, don't crash
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1175',message:'mkdirSync failed',data:{error:err.message,code:err.code,path:certDir},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1216',message:'mkdirSync failed - caught error',data:{error:err.message,code:err.code,path:String(certDir),isEnoent:err.code==='ENOENT',containsVarTask:String(certDir).includes('/var/task')},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'F'})}).catch(()=>{});
                     // #endregion
                     // Always return null for any filesystem error - don't throw
                     return null;
@@ -1296,7 +1319,10 @@ function generateSelfSignedCert_v2() {
         // - mkdirSync errors (ENOENT on Vercel's read-only filesystem)
         // - Any other filesystem errors
         // - Any other errors in the function
-        // Don't log the error to avoid noise - just return null silently
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1306',message:'Outermost catch - caught error in generateSelfSignedCert_v2',data:{error:err.message,code:err.code,isEnoent:err.code==='ENOENT',stack:err.stack?.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',runId:'cert-gen',hypothesisId:'G'})}).catch(()=>{});
+        // #endregion
+        // Always return null - never throw, never crash
         // This is the final safety net - even if all Vercel detection fails, this will catch the error
         return null;
     }
@@ -1439,4 +1465,7 @@ if (require.main === module && !isVercel && !isDefinitelyVercelAtTopLevel) {
 }
 
 // Export app for Vercel serverless functions
+// #region agent log
+fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1438',message:'Exporting Express app',data:{isMain:require.main===module,vercelFlag:process.env.VERCEL||null,vercelEnv:process.env.VERCEL_ENV||null},timestamp:Date.now(),sessionId:'debug-session',runId:'module-export',hypothesisId:'C'})}).catch(()=>{});
+// #endregion
 module.exports = app;

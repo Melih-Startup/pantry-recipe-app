@@ -11,6 +11,9 @@ try {
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/index.js:10',message:'Serverless function initialization success',data:{appLoaded:!!app},timestamp:Date.now(),sessionId:'debug-session',runId:'serverless-init',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/index.js:13',message:'Serverless entrypoint identity',data:{dirname:typeof __dirname !== 'undefined' ? String(__dirname) : 'undefined',filename:typeof __filename !== 'undefined' ? String(__filename) : 'undefined',mainFilename:require.main?.filename ? String(require.main.filename) : 'undefined',isMain:require.main===module,vercelFlag:process.env.VERCEL||null,vercelEnv:process.env.VERCEL_ENV||null},timestamp:Date.now(),sessionId:'debug-session',runId:'serverless-id',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
 } catch (error) {
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/index.js:13',message:'Serverless function initialization error',data:{error:error.message,stack:error.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'serverless-init',hypothesisId:'A'})}).catch(()=>{});
