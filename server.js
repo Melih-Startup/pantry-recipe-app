@@ -1,5 +1,6 @@
-// Force fresh deployment - Vercel cache fix v2
-// Deployment trigger - certificate generation fix applied
+// Force fresh deployment - Vercel cache fix v3
+// Deployment trigger - certificate generation fix applied with compatibility layer
+// Version: 2025-01-24-v3-compatibility-layer
 require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const https = require('https');
