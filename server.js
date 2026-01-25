@@ -1,4 +1,5 @@
 // Force fresh deployment - Vercel cache fix v2
+// Deployment trigger - certificate generation fix applied
 require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const https = require('https');
