@@ -4,8 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "tunnel": "lt --port 3000",
-    "tunnel:open": "lt --port 3000 -o",
+    "tunnel": "cloudflared tunnel --url http://localhost:3000",
+    "tunnel:localtunnel": "lt --port 3000",
+    "tunnel:localtunnel:open": "lt --port 3000 -o",
     "tunnel:https": "lt --port 3443 --local-https --allow-invalid-cert",
     "test": "echo \"Error: no test specified\" && exit 1",
     "vercel-build": "echo 'Build complete'"
@@ -29,6 +30,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "cloudflared": "^0.7.1",
     "localtunnel": "^2.0.2",
     "selfsigned": "^5.5.0"
   }
