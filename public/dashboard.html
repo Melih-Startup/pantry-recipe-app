@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>Pantry Pal - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #c9a96e;
+            --gold-light: #e8d5a8;
+            --charcoal: #1a1a1a;
+            --dark-bg: #141414;
+            --card-bg: #1e1e1e;
+            --off-white: #faf8f5;
+            --warm-gray: #8a8275;
+            --cream: #f5f0e8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--dark-bg);
+            color: var(--off-white);
+            min-height: 100vh;
+            min-height: 100dvh;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ─── DASHBOARD NAV ─── */
+        .dash-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(20,20,20,0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .dash-nav-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .dash-nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+        .dash-nav-back {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--warm-gray);
+            text-decoration: none;
+            font-size: 0.78rem;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+        }
+        .dash-nav-back:hover { color: var(--gold); }
+        .dash-nav-back svg { width: 14px; height: 14px; stroke: currentColor; }
+        .dash-nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .dash-user-name {
+            font-size: 0.8rem;
+            color: var(--gold-light);
+            letter-spacing: 1px;
+        }
+        .dash-notif-btn {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .dash-notif-btn:hover {
+            background: rgba(201,169,110,0.12);
+            border-color: rgba(201,169,110,0.25);
+        }
+        .dash-notif-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--off-white);
+            fill: none;
+            transition: stroke 0.3s ease;
+        }
+        .dash-notif-btn:hover svg { stroke: var(--gold); }
+        .dash-notif-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #ef4444;
+            border: 2px solid var(--dark-bg);
+        }
+        .dash-signout {
+            padding: 8px 18px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.5);
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dash-signout:hover {
+            border-color: rgba(220,38,38,0.5);
+            color: #fca5a5;
+        }
+
+        /* ─── NOTIFICATION DROPDOWN ─── */
+        .notif-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 320px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.3s ease;
+            z-index: 200;
+            overflow: hidden;
+        }
+        .notif-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .notif-header {
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--off-white);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notif-clear {
+            font-size: 0.68rem;
+            color: var(--gold);
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .notif-clear:hover { color: var(--gold-light); }
+        .notif-list { max-height: 300px; overflow-y: auto; }
+        .notif-item {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.2s ease;
+            cursor: pointer;
+        }
+        .notif-item:hover { background: rgba(255,255,255,0.03); }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-item-title {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--off-white);
+            margin-bottom: 4px;
+        }
+        .notif-item-desc {
+            font-size: 0.73rem;
+            color: var(--warm-gray);
+            line-height: 1.5;
+        }
+        .notif-item-time {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.25);
+            margin-top: 4px;
+        }
+        .notif-empty {
+            padding: 32px 18px;
+            text-align: center;
+            color: var(--warm-gray);
+            font-size: 0.82rem;
+        }
+
+        /* ─── DASHBOARD GREETING ─── */
+        .dash-greeting {
+            padding: 40px 24px 0;
+            max-width: 800px;
+            margin: 0 auto;
+            animation: fadeUp 0.6s ease-out;
+        }
+        .dash-greeting-hello {
+            font-size: 0.7rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+        .dash-greeting-name {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.6rem, 4vw, 2.4rem);
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .dash-greeting-sub {
+            font-size: 0.9rem;
+            color: var(--warm-gray);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── MAIN CARD ─── */
+        .dash-main {
+            padding: 32px 24px 60px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .dash-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            overflow: hidden;
+            animation: fadeUp 0.6s ease-out 0.15s both;
+        }
+        .dash-card-header {
+            padding: 24px 28px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .dash-card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* ─── INPUT METHOD TABS ─── */
+        .d-input-tabs {
+            display: flex;
+            gap: 0;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .d-input-tab {
+            flex: 1;
+            padding: 16px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--warm-gray);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .d-input-tab.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+            background: rgba(201,169,110,0.05);
+        }
+        .d-input-tab:hover:not(.active) {
+            color: var(--off-white);
+            background: rgba(255,255,255,0.03);
+        }
+        .d-input-tab svg { width: 16px; height: 16px; stroke: currentColor; }
+
+        /* ─── TAB CONTENT ─── */
+        .d-tab-content { display: none; }
+        .d-tab-content.active { display: block; }
+        .d-tab-body { padding: 28px; }
+
+        /* ─── TYPE TAB ─── */
+        .d-input-label {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--warm-gray);
+            margin-bottom: 10px;
+            display: block;
+        }
+        .d-input-field {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: var(--off-white);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease, background 0.3s ease;
+            outline: none;
+            line-height: 1.6;
+            resize: vertical;
+            min-height: 110px;
+        }
+        .d-input-field:focus {
+            border-color: var(--gold);
+            background: rgba(255,255,255,0.06);
+        }
+        .d-input-field::placeholder { color: rgba(255,255,255,0.2); }
+        .d-text-input { resize: vertical; min-height: 110px; }
+        .d-input-single {
+            min-height: unset;
+            resize: none;
+        }
+
+        /* ─── SCAN TAB ─── */
+        .d-scan-area {
+            border: 2px dashed rgba(201,169,110,0.25);
+            border-radius: 12px;
+            padding: 48px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            background: rgba(201,169,110,0.03);
+        }
+        .d-scan-area:hover {
+            border-color: var(--gold);
+            background: rgba(201,169,110,0.07);
+        }
+        .d-scan-area.has-image {
+            padding: 0;
+            border-style: solid;
+            border-color: var(--gold);
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .d-scan-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: rgba(201,169,110,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .d-scan-icon svg { width: 26px; height: 26px; stroke: var(--gold); }
+        .d-scan-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .d-scan-desc {
+            font-size: 0.82rem;
+            color: var(--warm-gray);
+            line-height: 1.6;
+            max-width: 340px;
+            margin: 0 auto;
+        }
+        .d-scan-or {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 20px auto;
+            max-width: 200px;
+            color: rgba(255,255,255,0.2);
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .d-scan-or::before, .d-scan-or::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+        }
+        .d-scan-camera-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            background: rgba(201,169,110,0.12);
+            border: 1px solid rgba(201,169,110,0.25);
+            border-radius: 100px;
+            color: var(--gold-light);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .d-scan-camera-btn:hover {
+            background: rgba(201,169,110,0.2);
+            border-color: var(--gold);
+        }
+        .d-scan-camera-btn svg { width: 16px; height: 16px; stroke: currentColor; }
+        .d-scan-preview {
+            width: 100%;
+            max-height: 260px;
+            object-fit: cover;
+            display: block;
+        }
+        .d-scan-actions {
+            display: flex;
+            gap: 12px;
+            padding: 14px 16px;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+        }
+        .d-scan-action {
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        .d-scan-action.retake {
+            background: rgba(255,255,255,0.08);
+            color: var(--off-white);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .d-scan-action.retake:hover { background: rgba(255,255,255,0.14); }
+        .d-scan-action.analyze {
+            background: var(--gold);
+            color: var(--charcoal);
+        }
+        .d-scan-action.analyze:hover { background: var(--gold-light); }
+        .d-detected {
+            margin-top: 20px;
+            padding: 18px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+        }
+        .d-detected-label {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 12px;
+        }
+        .d-detected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .d-detected-count {
+            font-size: 0.75rem;
+            color: var(--warm-gray);
+            margin-top: 12px;
+        }
+        .d-detected-count span { color: var(--gold); font-weight: 600; }
+        .d-miss-section {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .d-miss-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--off-white);
+        }
+        .d-miss-sub {
+            font-size: 0.78rem;
+            color: var(--warm-gray);
+            margin-bottom: 14px;
+            line-height: 1.5;
+        }
+        .d-miss-input-row {
+            display: flex;
+            gap: 10px;
+        }
+        .d-miss-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: var(--off-white);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        .d-miss-input:focus { border-color: var(--gold); }
+        .d-miss-input::placeholder { color: rgba(255,255,255,0.2); }
+        .d-miss-add-btn {
+            padding: 12px 20px;
+            background: rgba(201,169,110,0.15);
+            border: 1px solid rgba(201,169,110,0.3);
+            border-radius: 8px;
+            color: var(--gold);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .d-miss-add-btn:hover {
+            background: rgba(201,169,110,0.25);
+            border-color: var(--gold);
+        }
+        .d-scan-analyzing {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 48px 20px;
+        }
+        .d-scan-analyzing-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(201,169,110,0.15);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        .d-scan-analyzing-text {
+            font-size: 0.88rem;
+            color: var(--warm-gray);
+            text-align: center;
+        }
+        .d-scan-analyzing-text span {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.25);
+        }
+        .d-scan-error {
+            margin-top: 14px;
+            padding: 12px 16px;
+            background: rgba(220,38,38,0.08);
+            border: 1px solid rgba(220,38,38,0.25);
+            border-radius: 8px;
+            color: #fca5a5;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        /* ─── SHARED FORM ELEMENTS ─── */
+        .d-form-section { padding: 0 28px 28px; }
+        .d-form-group { margin-bottom: 22px; }
+        .d-form-group:last-child { margin-bottom: 0; }
+        .d-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .d-tag {
+            padding: 7px 16px;
+            background: rgba(201,169,110,0.1);
+            border: 1px solid rgba(201,169,110,0.2);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: var(--gold-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .d-tag:hover { background: rgba(201,169,110,0.2); }
+        .d-tag.selected {
+            background: var(--gold);
+            color: var(--charcoal);
+            font-weight: 500;
+            border-color: var(--gold);
+        }
+        .d-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.05);
+            margin: 0 28px;
+        }
+        .d-generate-wrap { padding: 20px 28px 28px; }
+        .d-generate-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 18px 40px;
+            background: var(--gold);
+            color: var(--charcoal);
+            border: none;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .d-generate-btn:hover {
+            background: var(--gold-light);
+            box-shadow: 0 12px 40px rgba(201,169,110,0.3);
+            transform: translateY(-2px);
+        }
+        .d-generate-btn:active { transform: translateY(0); }
+        .d-generate-btn .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(26,26,26,0.2);
+            border-top-color: var(--charcoal);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+        .d-generate-btn.loading .spinner { display: block; }
+        .d-generate-btn.loading .btn-text { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── RECIPE RESULT ─── */
+        .d-result {
+            margin-top: 24px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+            animation: fadeUp 0.6s ease-out 0.3s both;
+        }
+        .d-result.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .d-result-img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            filter: brightness(0.9) saturate(1.05);
+        }
+        .d-result-body { padding: 28px; }
+        .d-result-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .d-result-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .d-result-meta-item {
+            font-size: 0.8rem;
+            color: var(--warm-gray);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .d-result-meta-item svg { width: 14px; height: 14px; stroke: var(--gold); }
+        .d-result-instructions {
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.65);
+        }
+        .d-result-instructions p { margin-bottom: 8px; }
+        .d-result-placeholder {
+            color: var(--warm-gray);
+            font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 0.9rem;
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 768px) {
+            .dash-nav { padding: 0 16px; height: 56px; }
+            .dash-nav-logo { font-size: 1.1rem; }
+            .dash-nav-back { display: none; }
+            .dash-user-name { display: none; }
+            .dash-signout { padding: 6px 12px; font-size: 0.65rem; }
+            .dash-notif-btn { width: 36px; height: 36px; }
+            .dash-notif-btn svg { width: 16px; height: 16px; }
+            .notif-dropdown { width: 280px; right: -40px; }
+            .dash-greeting { padding: 28px 16px 0; }
+            .dash-greeting-name { font-size: 1.4rem; }
+            .dash-greeting-sub { font-size: 0.82rem; }
+            .dash-main { padding: 20px 16px 40px; }
+            .dash-card-header { padding: 18px 20px 14px; }
+            .dash-card-title { font-size: 1.1rem; }
+            .d-input-tab { padding: 14px 12px; font-size: 0.7rem; letter-spacing: 1px; gap: 6px; }
+            .d-tab-body { padding: 20px; }
+            .d-form-section { padding: 0 20px 20px; }
+            .d-generate-wrap { padding: 16px 20px 20px; }
+            .d-generate-btn { padding: 16px; font-size: 0.82rem; letter-spacing: 2px; }
+            .d-input-field { padding: 14px 16px; font-size: 0.9rem; }
+            .d-scan-area { padding: 36px 16px; }
+            .d-tag { padding: 6px 14px; font-size: 0.75rem; }
+            .d-miss-input-row { flex-direction: column; }
+            .d-miss-add-btn { width: 100%; text-align: center; }
+            .d-miss-label { font-size: 0.92rem; }
+            .d-miss-sub { font-size: 0.75rem; }
+            .d-result-body { padding: 20px; }
+            .d-result-name { font-size: 1.25rem; }
+            .d-divider { margin: 0 20px; }
+        }
+        @media (max-width: 380px) {
+            .dash-greeting { padding: 20px 12px 0; }
+            .dash-main { padding: 16px 12px 36px; }
+            .d-tab-body { padding: 16px; }
+            .d-form-section { padding: 0 16px 16px; }
+            .d-generate-wrap { padding: 12px 16px 16px; }
+            .dash-nav { padding: 0 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- DASHBOARD NAV -->
+    <nav class="dash-nav">
+        <div class="dash-nav-left">
+            <a href="/" class="dash-nav-logo">Pantry Pal</a>
+            <a href="/" class="dash-nav-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Home
+            </a>
+        </div>
+        <div class="dash-nav-right">
+            <span class="dash-user-name" id="dashUserName"></span>
+            <div style="position:relative;">
+                <button class="dash-notif-btn" id="notifBtn" onclick="toggleNotifications()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <div class="dash-notif-badge" id="notifBadge"></div>
+                </button>
+                <div class="notif-dropdown" id="notifDropdown">
+                    <div class="notif-header">
+                        <span>Notifications</span>
+                        <button class="notif-clear" onclick="clearNotifications()">Clear All</button>
+                    </div>
+                    <div class="notif-list" id="notifList">
+                        <div class="notif-item">
+                            <div class="notif-item-title">Welcome to Pantry Pal!</div>
+                            <div class="notif-item-desc">Start by scanning your pantry or typing ingredients to generate your first recipe.</div>
+                            <div class="notif-item-time">Just now</div>
+                        </div>
+                        <div class="notif-item">
+                            <div class="notif-item-title">New: Scan Your Pantry</div>
+                            <div class="notif-item-desc">Use your camera to snap a photo of your fridge or pantry shelf. AI identifies everything instantly.</div>
+                            <div class="notif-item-time">Today</div>
+                        </div>
+                        <div class="notif-item">
+                            <div class="notif-item-title">Featured: Spring Recipes</div>
+                            <div class="notif-item-desc">Check out our curated spring collection with fresh seasonal ingredients.</div>
+                            <div class="notif-item-time">Today</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="dash-signout" onclick="dashSignOut()">Sign Out</button>
+        </div>
+    </nav>
+
+    <!-- GREETING -->
+    <div class="dash-greeting">
+        <div class="dash-greeting-hello">Welcome Back</div>
+        <div class="dash-greeting-name" id="dashGreetingName">Chef</div>
+        <div class="dash-greeting-sub">What are we cooking today?</div>
+    </div>
+
+    <!-- MAIN CARD -->
+    <div class="dash-main">
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div class="dash-card-title">Create a Recipe</div>
+                <div style="position:relative;">
+                    <button class="dash-notif-btn" id="cardNotifBtn" onclick="toggleNotifications()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <div class="dash-notif-badge" id="cardNotifBadge"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div class="d-input-tabs">
+                <button class="d-input-tab active" onclick="switchDashTab('type')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                    Type
+                </button>
+                <button class="d-input-tab" onclick="switchDashTab('scan')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Scan
+                </button>
+            </div>
+
+            <!-- TYPE TAB -->
+            <div class="d-tab-content active" id="dashTypeTab">
+                <div class="d-tab-body">
+                    <label class="d-input-label">Your Ingredients</label>
+                    <textarea class="d-input-field d-text-input" id="dashIngredientInput" placeholder="chicken, garlic, lemon, rosemary, olive oil..."></textarea>
+                </div>
+            </div>
+
+            <!-- SCAN TAB -->
+            <div class="d-tab-content" id="dashScanTab">
+                <div class="d-tab-body">
+                    <div class="d-scan-area" id="dashScanArea" onclick="document.getElementById('dashScanFile').click()">
+                        <div class="d-scan-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </div>
+                        <div class="d-scan-title">Tap to Upload a Photo</div>
+                        <div class="d-scan-desc">Snap your fridge, pantry shelf, or countertop. AI identifies every ingredient.</div>
+                    </div>
+                    <div class="d-scan-or">or</div>
+                    <div style="text-align:center;">
+                        <button class="d-scan-camera-btn" onclick="event.stopPropagation(); document.getElementById('dashScanFileCamera').click()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Open Camera
+                        </button>
+                    </div>
+                    <input type="file" id="dashScanFile" accept="image/*" style="display:none" onchange="handleDashScan(event)">
+                    <input type="file" id="dashScanFileCamera" accept="image/*" capture="environment" style="display:none" onchange="handleDashScan(event)">
+                    <div class="d-scan-error" id="dashScanError" style="display:none;"></div>
+                    <div class="d-detected" id="dashDetected" style="display:none;">
+                        <div class="d-detected-label">Detected Ingredients</div>
+                        <div class="d-detected-tags" id="dashDetectedTags"></div>
+                        <div class="d-detected-count" id="dashDetectedCount"></div>
+                        <div class="d-miss-section">
+                            <div class="d-miss-label">Did I miss anything?</div>
+                            <div class="d-miss-sub">Tap an ingredient above to remove it, or add anything I didn't catch below.</div>
+                            <div class="d-miss-input-row">
+                                <input type="text" class="d-miss-input" id="dashMissInput" placeholder="e.g. soy sauce, ginger, lime...">
+                                <button class="d-miss-add-btn" onclick="addMissedIngredients()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SHARED OPTIONS -->
+            <div class="d-divider"></div>
+            <div class="d-form-section" style="padding-top:24px;">
+                <div class="d-form-group">
+                    <label class="d-input-label">Cuisine Preference</label>
+                    <div class="d-tags" id="dashCuisineTags">
+                        <div class="d-tag" data-value="italian">Italian</div>
+                        <div class="d-tag" data-value="japanese">Japanese</div>
+                        <div class="d-tag" data-value="mexican">Mexican</div>
+                        <div class="d-tag" data-value="indian">Indian</div>
+                        <div class="d-tag" data-value="french">French</div>
+                        <div class="d-tag" data-value="thai">Thai</div>
+                        <div class="d-tag" data-value="mediterranean">Mediterranean</div>
+                        <div class="d-tag" data-value="korean">Korean</div>
+                    </div>
+                </div>
+                <div class="d-form-group">
+                    <label class="d-input-label">Dietary Needs</label>
+                    <div class="d-tags" id="dashDietTags">
+                        <div class="d-tag" data-value="none">None</div>
+                        <div class="d-tag" data-value="vegetarian">Vegetarian</div>
+                        <div class="d-tag" data-value="vegan">Vegan</div>
+                        <div class="d-tag" data-value="gluten-free">Gluten-Free</div>
+                        <div class="d-tag" data-value="keto">Keto</div>
+                        <div class="d-tag" data-value="dairy-free">Dairy-Free</div>
+                    </div>
+                </div>
+                <div class="d-form-group">
+                    <label class="d-input-label">Special Requests</label>
+                    <textarea class="d-input-field d-input-single" id="dashSpecialInput" placeholder="Quick meal, under 30 min, budget-friendly..." style="min-height:unset;resize:none;height:52px;"></textarea>
+                </div>
+            </div>
+            <div class="d-generate-wrap">
+                <button class="d-generate-btn" id="dashGenerateBtn" onclick="dashGenerate()">
+                    <span class="btn-text">Generate Recipe</span>
+                    <div class="spinner"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- RECIPE RESULT -->
+        <div class="d-result" id="dashResult" style="display:none;">
+            <img class="d-result-img" id="dashResultImg" src="" alt="Recipe">
+            <div class="d-result-body">
+                <div class="d-result-name" id="dashResultName"></div>
+                <div class="d-result-meta">
+                    <div class="d-result-meta-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span id="dashResultTime">--</span>
+                    </div>
+                    <div class="d-result-meta-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        <span id="dashResultServings">--</span>
+                    </div>
+                    <div class="d-result-meta-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        <span id="dashResultDifficulty">--</span>
+                    </div>
+                </div>
+                <div class="d-result-instructions" id="dashResultInstructions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        let currentUser = null;
+
+        // ─── AUTH CHECK ───
+        async function checkDashAuth() {
+            const token = localStorage.getItem('authToken');
+            if (!token) { window.location.href = '/'; return; }
+            try {
+                const res = await fetch('/api/auth/status', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const data = await res.json();
+                    authToken = token;
+                    currentUser = data.user;
+                    const name = currentUser.name || currentUser.email.split('@')[0];
+                    document.getElementById('dashUserName').textContent = name;
+                    document.getElementById('dashGreetingName').textContent = name;
+                } else {
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/';
+                }
+            } catch {
+                window.location.href = '/';
+            }
+        }
+        checkDashAuth();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('token')) {
+            localStorage.setItem('authToken', urlParams.get('token'));
+            window.history.replaceState({}, '', '/dashboard.html');
+            checkDashAuth();
+        }
+
+        function dashSignOut() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/';
+        }
+
+        // ─── NOTIFICATIONS ───
+        function toggleNotifications() {
+            const dd = document.getElementById('notifDropdown');
+            dd.classList.toggle('show');
+            if (dd.classList.contains('show')) {
+                document.getElementById('notifBadge').style.display = 'none';
+                document.getElementById('cardNotifBadge').style.display = 'none';
+            }
+        }
+        document.addEventListener('click', function(e) {
+            const dd = document.getElementById('notifDropdown');
+            if (!e.target.closest('#notifBtn') && !e.target.closest('#cardNotifBtn') && !e.target.closest('.notif-dropdown')) {
+                dd.classList.remove('show');
+            }
+        });
+        function clearNotifications() {
+            document.getElementById('notifList').innerHTML = '<div class="notif-empty">No new notifications</div>';
+            document.getElementById('notifBadge').style.display = 'none';
+            document.getElementById('cardNotifBadge').style.display = 'none';
+        }
+
+        // ─── TAB SWITCHING ───
+        function switchDashTab(tab) {
+            document.querySelectorAll('.d-input-tab').forEach((t, i) => {
+                t.classList.toggle('active', (tab === 'type' && i === 0) || (tab === 'scan' && i === 1));
+            });
+            document.getElementById('dashTypeTab').classList.toggle('active', tab === 'type');
+            document.getElementById('dashScanTab').classList.toggle('active', tab === 'scan');
+        }
+
+        // ─── TAG SELECTION ───
+        document.querySelectorAll('.d-tags').forEach(container => {
+            container.querySelectorAll('.d-tag').forEach(tag => {
+                tag.addEventListener('click', () => tag.classList.toggle('selected'));
+            });
+        });
+
+        // ─── SCAN HANDLING ───
+        let lastScanBase64 = null;
+
+        function handleDashScan(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                lastScanBase64 = e.target.result;
+                const area = document.getElementById('dashScanArea');
+                area.classList.add('has-image');
+                area.innerHTML = `
+                    <img class="d-scan-preview" src="${e.target.result}" alt="Scanned pantry">
+                    <div class="d-scan-actions">
+                        <button class="d-scan-action retake" onclick="resetDashScan(event)">Retake</button>
+                        <button class="d-scan-action analyze" onclick="analyzeDashScan(event)">Analyze Ingredients</button>
+                    </div>
+                `;
+                area.onclick = null;
+                document.getElementById('dashScanError').style.display = 'none';
+                document.getElementById('dashDetected').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetDashScan(e) {
+            if (e) e.stopPropagation();
+            lastScanBase64 = null;
+            const area = document.getElementById('dashScanArea');
+            area.classList.remove('has-image');
+            area.innerHTML = `
+                <div class="d-scan-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+                <div class="d-scan-title">Tap to Upload a Photo</div>
+                <div class="d-scan-desc">Snap your fridge, pantry shelf, or countertop. AI identifies every ingredient.</div>
+            `;
+            area.onclick = () => document.getElementById('dashScanFile').click();
+            document.getElementById('dashScanFile').value = '';
+            document.getElementById('dashScanFileCamera').value = '';
+            document.getElementById('dashDetected').style.display = 'none';
+            document.getElementById('dashScanError').style.display = 'none';
+        }
+
+        async function analyzeDashScan(e) {
+            if (e) e.stopPropagation();
+            if (!lastScanBase64) return;
+
+            const area = document.getElementById('dashScanArea');
+            const previewSrc = lastScanBase64;
+            area.innerHTML = `
+                <img class="d-scan-preview" src="${previewSrc}" alt="Scanned pantry" style="filter: brightness(0.4);">
+                <div class="d-scan-analyzing" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    <div class="d-scan-analyzing-spinner"></div>
+                    <div class="d-scan-analyzing-text">
+                        Analyzing your pantry...
+                        <span>AI is identifying ingredients</span>
+                    </div>
+                </div>
+            `;
+            area.style.position = 'relative';
+            document.getElementById('dashScanError').style.display = 'none';
+            document.getElementById('dashDetected').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/scan-pantry', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ imageBase64: lastScanBase64 })
+                });
+
+                const data = await response.json();
+
+                area.innerHTML = `
+                    <img class="d-scan-preview" src="${previewSrc}" alt="Scanned pantry">
+                    <div class="d-scan-actions">
+                        <button class="d-scan-action retake" onclick="resetDashScan(event)">Retake</button>
+                        <button class="d-scan-action analyze" onclick="analyzeDashScan(event)">Re-Analyze</button>
+                    </div>
+                `;
+                area.style.position = '';
+
+                if (data.error) {
+                    const errEl = document.getElementById('dashScanError');
+                    errEl.textContent = data.error;
+                    errEl.style.display = 'block';
+                    return;
+                }
+
+                const rawIngredients = data.ingredients || '';
+                const items = rawIngredients
+                    .split(/,|\n/)
+                    .map(s => s.replace(/^[\d\.\-\*\s]+/, '').trim())
+                    .filter(s => s.length > 0 && s.length < 60);
+
+                if (items.length === 0) {
+                    const errEl = document.getElementById('dashScanError');
+                    errEl.textContent = 'Could not detect any ingredients. Try a clearer photo with better lighting.';
+                    errEl.style.display = 'block';
+                    return;
+                }
+
+                renderDetectedIngredients(items);
+
+            } catch (err) {
+                console.error('Scan failed:', err);
+                area.innerHTML = `
+                    <img class="d-scan-preview" src="${previewSrc}" alt="Scanned pantry">
+                    <div class="d-scan-actions">
+                        <button class="d-scan-action retake" onclick="resetDashScan(event)">Retake</button>
+                        <button class="d-scan-action analyze" onclick="analyzeDashScan(event)">Retry</button>
+                    </div>
+                `;
+                area.style.position = '';
+                const errEl = document.getElementById('dashScanError');
+                errEl.textContent = 'Failed to analyze image. Please check your connection and try again.';
+                errEl.style.display = 'block';
+            }
+        }
+
+        function renderDetectedIngredients(items) {
+            const container = document.getElementById('dashDetectedTags');
+            container.innerHTML = '';
+
+            items.forEach(item => {
+                const name = item.charAt(0).toUpperCase() + item.slice(1);
+                const tag = document.createElement('div');
+                tag.className = 'd-tag selected';
+                tag.textContent = name;
+                tag.dataset.value = name.toLowerCase();
+                tag.addEventListener('click', () => {
+                    tag.classList.toggle('selected');
+                    syncIngredientsToInput();
+                });
+                container.appendChild(tag);
+            });
+
+            const countEl = document.getElementById('dashDetectedCount');
+            countEl.innerHTML = `Found <span>${items.length}</span> ingredient${items.length !== 1 ? 's' : ''}. Tap to deselect any you don't want.`;
+
+            document.getElementById('dashDetected').style.display = 'block';
+            document.getElementById('dashMissInput').value = '';
+            syncIngredientsToInput();
+
+            document.getElementById('dashDetected').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function syncIngredientsToInput() {
+            const selected = [...document.querySelectorAll('#dashDetectedTags .d-tag.selected')].map(t => t.textContent);
+            document.getElementById('dashIngredientInput').value = selected.join(', ');
+        }
+
+        function addMissedIngredients() {
+            const input = document.getElementById('dashMissInput');
+            const raw = input.value.trim();
+            if (!raw) { input.focus(); return; }
+
+            const newItems = raw.split(/,/).map(s => s.trim()).filter(s => s.length > 0);
+            const container = document.getElementById('dashDetectedTags');
+            const existing = new Set([...container.querySelectorAll('.d-tag')].map(t => t.dataset.value));
+
+            newItems.forEach(item => {
+                const lower = item.toLowerCase();
+                if (existing.has(lower)) return;
+                existing.add(lower);
+                const name = item.charAt(0).toUpperCase() + item.slice(1);
+                const tag = document.createElement('div');
+                tag.className = 'd-tag selected';
+                tag.textContent = name;
+                tag.dataset.value = lower;
+                tag.style.animation = 'fadeUp 0.3s ease-out';
+                tag.addEventListener('click', () => {
+                    tag.classList.toggle('selected');
+                    syncIngredientsToInput();
+                });
+                container.appendChild(tag);
+            });
+
+            input.value = '';
+            input.focus();
+
+            const total = container.querySelectorAll('.d-tag').length;
+            document.getElementById('dashDetectedCount').innerHTML = `Found <span>${total}</span> ingredient${total !== 1 ? 's' : ''}. Tap to deselect any you don't want.`;
+            syncIngredientsToInput();
+        }
+
+        document.getElementById('dashMissInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); addMissedIngredients(); }
+        });
+
+        // ─── RECIPE GENERATION ───
+        async function dashGenerate() {
+            const btn = document.getElementById('dashGenerateBtn');
+            const ingredients = document.getElementById('dashIngredientInput').value.trim();
+            if (!ingredients) {
+                const el = document.getElementById('dashIngredientInput');
+                el.focus();
+                el.style.borderColor = '#e74c3c';
+                setTimeout(() => el.style.borderColor = '', 2000);
+                switchDashTab('type');
+                return;
+            }
+            if (!authToken) { window.location.href = '/'; return; }
+
+            const cuisines = [...document.querySelectorAll('#dashCuisineTags .d-tag.selected')].map(t => t.dataset.value);
+            const diets = [...document.querySelectorAll('#dashDietTags .d-tag.selected')].map(t => t.dataset.value);
+            const special = document.getElementById('dashSpecialInput').value.trim();
+
+            btn.classList.add('loading');
+            try {
+                const response = await fetch('/api/generate-recipe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({
+                        ingredients,
+                        context: [
+                            cuisines.length ? `Cuisine: ${cuisines.join(', ')}` : '',
+                            diets.length ? `Dietary: ${diets.join(', ')}` : '',
+                            special
+                        ].filter(Boolean).join('. ')
+                    })
+                });
+                const data = await response.json();
+                if (data.recipe) dashDisplayRecipe(data.recipe);
+            } catch (err) {
+                console.error('Generation failed:', err);
+            } finally {
+                btn.classList.remove('loading');
+            }
+        }
+
+        function dashDisplayRecipe(markdown) {
+            const resultEl = document.getElementById('dashResult');
+            const nameEl = document.getElementById('dashResultName');
+            const timeEl = document.getElementById('dashResultTime');
+            const servingsEl = document.getElementById('dashResultServings');
+            const diffEl = document.getElementById('dashResultDifficulty');
+            const instEl = document.getElementById('dashResultInstructions');
+            const imgEl = document.getElementById('dashResultImg');
+
+            const lines = markdown.split('\n');
+            let title = 'Generated Recipe';
+            lines.forEach(line => {
+                if ((line.startsWith('## ') || line.startsWith('# ')) && title === 'Generated Recipe') {
+                    title = line.replace(/^#+\s*/, '').trim();
+                }
+            });
+
+            nameEl.textContent = title;
+            timeEl.textContent = '30 min';
+            servingsEl.textContent = '4 servings';
+            diffEl.textContent = 'Medium';
+
+            const cleaned = markdown.replace(/^#+.*$/gm, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').trim();
+            instEl.innerHTML = cleaned.split('\n').filter(l => l.trim()).map(l => `<p>${l}</p>`).join('');
+
+            const searchName = title.replace(/[^a-zA-Z\s]/g, '').trim();
+            fetch(`/api/food-image-search?name=${encodeURIComponent(searchName)}`)
+                .then(r => r.json())
+                .then(d => { if (d.imageUrl) imgEl.src = d.imageUrl; })
+                .catch(() => {});
+            imgEl.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80&auto=format';
+
+            resultEl.style.display = 'block';
+            resultEl.classList.add('visible');
+            resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    </script>
+</body>
+</html>
