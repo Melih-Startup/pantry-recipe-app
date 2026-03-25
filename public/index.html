@@ -1981,6 +1981,24 @@
             background-clip: text;
         }
 
+        .nav-new-app-link {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ea580c;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(234, 88, 12, 0.35);
+            background: rgba(255, 247, 237, 0.9);
+            transition: background 0.2s ease, border-color 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .nav-new-app-link:hover {
+            background: #fff7ed;
+            border-color: #ea580c;
+        }
+
         /* Homepage Styles */
         .homepage-container {
             max-width: 1200px;
@@ -3068,6 +3086,7 @@
         <!-- Top Navigation Bar -->
         <div class="top-nav">
             <div class="nav-logo">Pantry Pal</div>
+            <a class="nav-new-app-link" id="newAppLink" href="#" target="_blank" rel="noopener noreferrer" hidden>New app</a>
         </div>
         
         <div class="homepage-container">
@@ -3508,6 +3527,21 @@
             fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3295',message:'After console.log statement',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C'})}).catch(()=>{});
         } catch(e){}
         // #endregion
+
+        (async function initNewAppLink() {
+            const link = document.getElementById('newAppLink');
+            if (!link) return;
+            try {
+                const res = await fetch('/api/config/public');
+                const data = await res.json();
+                if (data && data.newAppUrl) {
+                    link.href = data.newAppUrl;
+                    link.removeAttribute('hidden');
+                }
+            } catch (e) {
+                /* optional link stays hidden */
+            }
+        })();
         
         // Authentication Management
         let authToken = null;

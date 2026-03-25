@@ -42,6 +42,9 @@ const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
 // To restrict to a specific email, set ADMIN_EMAIL environment variable or change the default below
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null; // Set to null to allow first email, or set specific email
 
+// Public HTTPS URL for the new app (e.g. Vercel deployment). Shown as a link in the UI when set.
+const NEW_APP_URL = (process.env.NEW_APP_URL || '').trim();
+
 // Email configuration for verification codes
 const EMAIL_USER = process.env.EMAIL_USER || '';
 const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD || '';
@@ -645,6 +648,13 @@ app.get('/api/auth/providers', (req, res) => {
         google: !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET),
         facebook: !!(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET),
         github: !!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)
+    });
+});
+
+// Non-sensitive client config (safe for public pages; avoids hardcoding deploy URLs in HTML)
+app.get('/api/config/public', (req, res) => {
+    res.json({
+        newAppUrl: NEW_APP_URL || null
     });
 });
 
