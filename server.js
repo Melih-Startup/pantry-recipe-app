@@ -137,7 +137,7 @@ app.use(passport.session());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Log all POST requests for debugging
 app.use((req, res, next) => {
@@ -1037,6 +1037,11 @@ Keep responses concise but helpful (2-4 sentences for simple questions, more det
         console.error('Chat error:', error);
         res.status(500).json({ error: 'Failed to get response' });
     }
+});
+
+// Catch-all: serve index.html for any non-API route (SPA support)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Get local IP address for mobile access
