@@ -845,6 +845,44 @@
         }
         .auth-input:focus { border-color: var(--gold); }
         .auth-input::placeholder { color: rgba(255,255,255,0.2); }
+        .auth-input-wrap {
+            position: relative;
+            display: block;
+        }
+        .auth-input-wrap .auth-input {
+            padding-right: 4.5rem;
+            box-sizing: border-box;
+        }
+        .auth-password-toggle {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--gold);
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 6px;
+            transition: color 0.2s ease, background 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-password-toggle:hover {
+            color: var(--gold-light);
+            background: rgba(201,169,110,0.12);
+        }
+        .auth-password-toggle svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            fill: none;
+            flex-shrink: 0;
+        }
+        .auth-password-toggle .auth-eye-off { display: none; }
+        .auth-password-toggle.is-visible .auth-eye-on { display: none; }
+        .auth-password-toggle.is-visible .auth-eye-off { display: block; }
         .auth-btn {
             width: 100%;
             padding: 16px;
@@ -1009,6 +1047,60 @@
         }
         .input-tab-content { display: none; }
         .input-tab-content.active { display: block; }
+        .plan-intro {
+            background: rgba(201,169,110,0.08);
+            border: 1px solid rgba(201,169,110,0.2);
+            border-radius: 12px;
+            padding: 22px 24px;
+            margin-bottom: 24px;
+        }
+        .plan-intro p {
+            margin: 0;
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: var(--warm-gray);
+        }
+        .plan-intro strong {
+            color: var(--off-white);
+        }
+        .input-hint {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.35);
+            margin: 0 0 14px 0;
+            line-height: 1.5;
+        }
+        .scan-type-divider {
+            text-align: center;
+            font-size: 0.72rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.25);
+            margin: 20px 0 16px;
+        }
+        .plan-time-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .plan-time-row {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .plan-time-row.visible {
+            display: flex;
+        }
+        .plan-time-row span {
+            font-size: 0.8rem;
+            color: var(--warm-gray);
+            min-width: 100px;
+        }
+        .plan-time-row .input-field {
+            max-width: 200px;
+            padding: 10px 14px;
+        }
         .scan-upload-area {
             border: 2px dashed rgba(201,169,110,0.3);
             border-radius: 12px;
@@ -1461,7 +1553,13 @@
                 </div>
                 <div class="auth-input-group">
                     <label>Password</label>
-                    <input type="password" class="auth-input" id="loginPassword" placeholder="Enter your password" required>
+                    <div class="auth-input-wrap">
+                        <input type="password" class="auth-input" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="auth-password-toggle" id="loginPasswordToggle" aria-label="Show password" onclick="togglePasswordVisibility('loginPassword', this)">
+                            <svg class="auth-eye-on" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="auth-eye-off" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="auth-btn" id="loginSubmitBtn">Sign In</button>
             </form>
@@ -1493,11 +1591,23 @@
                 </div>
                 <div class="auth-input-group">
                     <label>Password</label>
-                    <input type="password" class="auth-input" id="signupPassword" placeholder="Create a password" required minlength="6">
+                    <div class="auth-input-wrap">
+                        <input type="password" class="auth-input" id="signupPassword" placeholder="Create a password" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="auth-password-toggle" aria-label="Show password" onclick="togglePasswordVisibility('signupPassword', this)">
+                            <svg class="auth-eye-on" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="auth-eye-off" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="auth-input-group">
                     <label>Confirm Password</label>
-                    <input type="password" class="auth-input" id="signupPasswordConfirm" placeholder="Confirm your password" required>
+                    <div class="auth-input-wrap">
+                        <input type="password" class="auth-input" id="signupPasswordConfirm" placeholder="Confirm your password" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="auth-password-toggle" aria-label="Show password" onclick="togglePasswordVisibility('signupPasswordConfirm', this)">
+                            <svg class="auth-eye-on" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="auth-eye-off" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="auth-btn" id="signupSubmitBtn">Create Account</button>
             </form>
@@ -1674,30 +1784,66 @@
         <div class="generator-grid">
             <div class="reveal">
                 <div class="input-method-tabs">
-                    <button class="input-method-tab active" onclick="switchInputMethod('type')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-                        Type Ingredients
+                    <button type="button" class="input-method-tab active" data-method="plan" onclick="switchInputMethod('plan')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Plan
                     </button>
-                    <button class="input-method-tab" onclick="switchInputMethod('scan')">
+                    <button type="button" class="input-method-tab" data-method="scan" onclick="switchInputMethod('scan')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                        Scan Pantry
+                        Scan
                     </button>
                 </div>
 
-                <div class="input-tab-content active" id="typeTab">
+                <div class="input-tab-content active" id="planTab">
+                    <div class="plan-intro">
+                        <p><strong>Fresh from a shopping haul?</strong> Plan mode helps you get organized: take a clear photo of what you bought (or unpack it on the counter first), then head to the <strong>Scan</strong> tab to type or scan everything in one place. Choose which meals you care about and, if you like, pick times for reminders when notifications are enabled.</p>
+                    </div>
                     <div class="input-group">
-                        <label class="input-label">Your Ingredients</label>
-                        <textarea class="input-field" id="ingredientInput" placeholder="chicken, garlic, lemon, rosemary, olive oil..."></textarea>
+                        <label class="input-label">Meals you’re planning</label>
+                        <p class="input-hint">Tap to include or exclude. Selected meals can each have an optional reminder time.</p>
+                        <div class="tag-container" id="planMealTags">
+                            <div class="tag" data-value="breakfast">Breakfast</div>
+                            <div class="tag" data-value="lunch">Lunch</div>
+                            <div class="tag" data-value="dinner">Dinner</div>
+                            <div class="tag" data-value="snack">Snack</div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Reminder times (optional)</label>
+                        <p class="input-hint">Shown only for meals you selected above. Uses your device’s local time.</p>
+                        <div class="plan-time-grid">
+                            <div class="plan-time-row" data-meal="breakfast">
+                                <span>Breakfast</span>
+                                <input type="time" class="input-field" id="planTimeBreakfast" data-plan-time="breakfast">
+                            </div>
+                            <div class="plan-time-row" data-meal="lunch">
+                                <span>Lunch</span>
+                                <input type="time" class="input-field" id="planTimeLunch" data-plan-time="lunch">
+                            </div>
+                            <div class="plan-time-row" data-meal="dinner">
+                                <span>Dinner</span>
+                                <input type="time" class="input-field" id="planTimeDinner" data-plan-time="dinner">
+                            </div>
+                            <div class="plan-time-row" data-meal="snack">
+                                <span>Snack</span>
+                                <input type="time" class="input-field" id="planTimeSnack" data-plan-time="snack">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="input-tab-content" id="scanTab">
+                    <div class="input-group">
+                        <label class="input-label">Type ingredients</label>
+                        <textarea class="input-field" id="ingredientInput" placeholder="chicken, garlic, lemon, rosemary, olive oil..."></textarea>
+                    </div>
+                    <div class="scan-type-divider">Or use your camera / a photo</div>
                     <div class="scan-upload-area" id="scanUploadArea" onclick="document.getElementById('scanFileInput').click()">
                         <div class="scan-upload-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                         </div>
                         <div class="scan-upload-title">Snap or Upload a Photo</div>
-                        <div class="scan-upload-desc">Take a picture of your fridge, pantry shelf, or countertop ingredients.<br>Our AI will identify everything for you.</div>
+                        <div class="scan-upload-desc">Great after a grocery run — snap your haul or your pantry. You can <strong>combine</strong> typed ingredients above with a photo below.</div>
                     </div>
                     <input type="file" id="scanFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleScanUpload(event)">
                     <div class="scan-detected-items" id="scanDetectedItems" style="display:none">
@@ -1985,6 +2131,16 @@
             }
         }
 
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input || !btn) return;
+            const isHidden = input.getAttribute('type') === 'password';
+            input.setAttribute('type', isHidden ? 'text' : 'password');
+            const nowVisible = input.getAttribute('type') === 'text';
+            btn.classList.toggle('is-visible', nowVisible);
+            btn.setAttribute('aria-label', nowVisible ? 'Hide password' : 'Show password');
+        }
+
         function openAuth(type) {
             document.getElementById(type === 'login' ? 'loginModal' : 'signupModal').classList.add('show');
         }
@@ -1994,6 +2150,15 @@
             modal.classList.remove('show');
             modal.querySelectorAll('.auth-error').forEach(e => { e.classList.remove('show'); e.textContent = ''; });
             modal.querySelectorAll('.auth-input').forEach(i => { i.value = ''; });
+            modal.querySelectorAll('.auth-input').forEach(i => {
+                if (i.id !== 'loginPassword' && i.id !== 'signupPassword' && i.id !== 'signupPasswordConfirm') return;
+                i.setAttribute('type', 'password');
+                const btn = i.closest('.auth-input-wrap')?.querySelector('.auth-password-toggle');
+                if (btn) {
+                    btn.classList.remove('is-visible');
+                    btn.setAttribute('aria-label', 'Show password');
+                }
+            });
         }
 
         function switchAuth(showId) {
@@ -2052,6 +2217,7 @@
             if (pw !== pwConfirm) {
                 errEl.textContent = 'Passwords do not match';
                 errEl.classList.add('show');
+                document.getElementById('signupPasswordConfirm').focus();
                 return;
             }
             btn.disabled = true;
@@ -2063,7 +2229,8 @@
                     body: JSON.stringify({
                         name: document.getElementById('signupName').value,
                         email: document.getElementById('signupEmail').value,
-                        password: pw
+                        password: pw,
+                        passwordConfirm: pwConfirm
                     })
                 });
                 const data = await res.json();
@@ -2072,6 +2239,13 @@
                     authToken = data.token;
                     currentUser = data.user;
                     window.location.href = '/dashboard.html';
+                } else if (res.ok) {
+                    closeAuth('signupModal');
+                    openAuth('login');
+                    const loginErr = document.getElementById('loginError');
+                    loginErr.textContent = data.message || 'Account created. Please sign in.';
+                    loginErr.classList.add('show');
+                    document.getElementById('loginEmail').value = document.getElementById('signupEmail').value.trim();
                 } else {
                     errEl.textContent = data.error || 'Signup failed';
                     errEl.classList.add('show');
@@ -2202,19 +2376,80 @@
         }, { threshold: 0.15 });
         revealElements.forEach(el => revealObserver.observe(el));
 
+        // ─── PLAN TAB (meal reminders, persisted locally) ───
+        const PLAN_PREFS_KEY = 'pantryPlanPrefs';
+        function syncPlanTimeRows() {
+            document.querySelectorAll('.plan-time-row').forEach(row => {
+                const meal = row.getAttribute('data-meal');
+                const on = document.querySelector(`#planMealTags .tag.selected[data-value="${meal}"]`);
+                row.classList.toggle('visible', !!on);
+            });
+        }
+        function savePlanPrefs() {
+            try {
+                const meals = [...document.querySelectorAll('#planMealTags .tag.selected')].map(t => t.dataset.value);
+                const times = {};
+                document.querySelectorAll('input[data-plan-time]').forEach(inp => {
+                    const m = inp.getAttribute('data-plan-time');
+                    if (inp.value) times[m] = inp.value;
+                });
+                localStorage.setItem(PLAN_PREFS_KEY, JSON.stringify({ meals, times }));
+            } catch (e) { /* ignore */ }
+        }
+        function loadPlanPrefs() {
+            try {
+                const raw = localStorage.getItem(PLAN_PREFS_KEY);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (data.meals && Array.isArray(data.meals)) {
+                    data.meals.forEach(meal => {
+                        const tag = document.querySelector(`#planMealTags .tag[data-value="${meal}"]`);
+                        if (tag) tag.classList.add('selected');
+                    });
+                }
+                if (data.times && typeof data.times === 'object') {
+                    Object.entries(data.times).forEach(([meal, time]) => {
+                        const el = document.querySelector(`input[data-plan-time="${meal}"]`);
+                        if (el && time) el.value = time;
+                    });
+                }
+                syncPlanTimeRows();
+            } catch (e) { /* ignore */ }
+        }
+        function getPlanContextString() {
+            const meals = [...document.querySelectorAll('#planMealTags .tag.selected')].map(t => t.dataset.value);
+            if (!meals.length) return '';
+            const parts = meals.map(meal => {
+                const inp = document.querySelector(`input[data-plan-time="${meal}"]`);
+                const t = inp && inp.value;
+                return t ? `${meal} (reminder ~${t})` : meal;
+            });
+            return `Meal planning: focus on ${parts.join(', ')}.`;
+        }
+
         // ─── TAG SELECTION ───
         document.querySelectorAll('.tag-container').forEach(container => {
             container.querySelectorAll('.tag').forEach(tag => {
-                tag.addEventListener('click', () => tag.classList.toggle('selected'));
+                tag.addEventListener('click', () => {
+                    tag.classList.toggle('selected');
+                    if (container.id === 'planMealTags') {
+                        syncPlanTimeRows();
+                        savePlanPrefs();
+                    }
+                });
             });
         });
+        document.querySelectorAll('input[data-plan-time]').forEach(inp => {
+            inp.addEventListener('change', savePlanPrefs);
+        });
+        loadPlanPrefs();
 
         // ─── INPUT METHOD TABS ───
         function switchInputMethod(method) {
-            document.querySelectorAll('.input-method-tab').forEach((tab, i) => {
-                tab.classList.toggle('active', (method === 'type' && i === 0) || (method === 'scan' && i === 1));
+            document.querySelectorAll('.input-method-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('data-method') === method);
             });
-            document.getElementById('typeTab').classList.toggle('active', method === 'type');
+            document.getElementById('planTab').classList.toggle('active', method === 'plan');
             document.getElementById('scanTab').classList.toggle('active', method === 'scan');
         }
 
@@ -2246,7 +2481,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 </div>
                 <div class="scan-upload-title">Snap or Upload a Photo</div>
-                <div class="scan-upload-desc">Take a picture of your fridge, pantry shelf, or countertop ingredients.<br>Our AI will identify everything for you.</div>
+                <div class="scan-upload-desc">Great after a grocery run — snap your haul or your pantry. You can <strong>combine</strong> typed ingredients above with a photo below.</div>
             `;
             area.onclick = () => document.getElementById('scanFileInput').click();
             document.getElementById('scanFileInput').value = '';
@@ -2268,7 +2503,9 @@
             });
             document.getElementById('scanDetectedItems').style.display = 'block';
             const ingredientInput = document.getElementById('ingredientInput');
-            ingredientInput.value = mockIngredients.join(', ');
+            const base = ingredientInput.value.trim();
+            const merged = mockIngredients.join(', ');
+            ingredientInput.value = base ? `${base}, ${merged}` : merged;
         }
 
         // ─── RECIPE DETAIL MODAL ───
@@ -2320,6 +2557,11 @@
 
         // ─── RECIPE GENERATOR ───
         async function generateRecipe() {
+            const activeMethod = document.querySelector('.input-method-tab.active')?.getAttribute('data-method');
+            if (activeMethod === 'plan') {
+                switchInputMethod('scan');
+            }
+
             const btn = document.getElementById('generateBtn');
             const ingredients = document.getElementById('ingredientInput').value.trim();
             if (!ingredients) {
@@ -2337,6 +2579,7 @@
             const selectedCuisines = [...document.querySelectorAll('#cuisineTags .tag.selected')].map(t => t.dataset.value);
             const selectedDiets = [...document.querySelectorAll('#dietTags .tag.selected')].map(t => t.dataset.value);
             const special = document.getElementById('specialInput').value.trim();
+            const planCtx = getPlanContextString();
 
             btn.classList.add('loading');
 
@@ -2352,7 +2595,8 @@
                         context: [
                             selectedCuisines.length ? `Cuisine: ${selectedCuisines.join(', ')}` : '',
                             selectedDiets.length ? `Dietary: ${selectedDiets.join(', ')}` : '',
-                            special
+                            special,
+                            planCtx
                         ].filter(Boolean).join('. ')
                     })
                 });

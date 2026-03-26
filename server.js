@@ -23,6 +23,30 @@ const PORT = 3000;
 const HTTPS_PORT = 3443;
 const isPostgresDb = Boolean(db && db.pool);
 
+/** Map pg / connection errors to a safe JSON response for auth routes */
+function sendDbError(res, err) {
+    console.error('Database error:', err && err.code, err && err.message);
+    const msg = (err && err.message) || '';
+    if (msg.includes('DATABASE_URL not configured')) {
+        return res.status(503).json({ error: 'Server database is not configured. Add DATABASE_URL in Vercel → Settings → Environment Variables, then redeploy.' });
+    }
+    if (err && err.code === '28P01') {
+        return res.status(503).json({
+            error: 'Database rejected the password. In Supabase reset the database password, copy the new connection URI from Project Settings → Database, and paste it as DATABASE_URL on Vercel. If the password has @, #, $, or %, use the URI Supabase copies for you or encode those characters in the password.'
+        });
+    }
+    if (err && (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT')) {
+        return res.status(503).json({
+            error: 'Cannot reach the database host. Try the Supabase Session pooler URI (often port 6543, user like postgres.PROJECT_REF) from Project Settings → Database → Connection string, then redeploy.'
+        });
+    }
+    if (err && err.code === '42P01') {
+        return res.status(503).json({ error: 'Database table missing. Redeploy the app or run table setup in the Supabase SQL editor.' });
+    }
+    const detail = process.env.VERCEL ? undefined : msg;
+    return res.status(500).json({ error: 'Database error', detail });
+}
+
 function normalizeRecipeKey(name) {
     return String(name || '')
         .toLowerCase()
@@ -510,11 +534,15 @@ async function sendVerificationEmail(email, code) {
 // Simple signup endpoint (no 2FA)
 app.post('/api/auth/signup', async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email, password, name, passwordConfirm } = req.body;
 
         // Validation
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        if (typeof passwordConfirm !== 'string' || password !== passwordConfirm) {
+            return res.status(400).json({ error: 'Passwords do not match' });
         }
 
         if (!isValidEmail(email)) {
@@ -528,8 +556,7 @@ app.post('/api/auth/signup', async (req, res) => {
         // Check if user already exists
         db.get('SELECT id, provider FROM users WHERE email = ?', [email.toLowerCase()], async (err, row) => {
             if (err) {
-                console.error('Database error:', err);
-                return res.status(500).json({ error: 'Database error' });
+                return sendDbError(res, err);
             }
 
             if (row) {
@@ -542,8 +569,7 @@ app.post('/api/auth/signup', async (req, res) => {
             // Check if admin account already exists to determine if new user should be admin
             db.get('SELECT id FROM users WHERE is_admin = 1', async (err, adminExists) => {
                 if (err) {
-                    console.error('Database error:', err);
-                    return res.status(500).json({ error: 'Database error' });
+                    return sendDbError(res, err);
                 }
 
                 // Determine if this user should be admin:
@@ -568,7 +594,7 @@ app.post('/api/auth/signup', async (req, res) => {
                     function(err) {
                         if (err) {
                             console.error('Error creating user:', err);
-                            return res.status(500).json({ error: 'Failed to create user' });
+                            return sendDbError(res, err);
                         }
 
                         console.log(`✅ Account created: ${email.toLowerCase()} ${isAdmin ? '(Admin)' : '(User)'}`);
@@ -599,8 +625,7 @@ app.post('/api/auth/login', async (req, res) => {
         // Find user by email
         db.get('SELECT * FROM users WHERE email = ?', [email.toLowerCase()], async (err, user) => {
             if (err) {
-                console.error('Database error:', err);
-                return res.status(500).json({ error: 'Database error' });
+                return sendDbError(res, err);
             }
 
             if (!user) {

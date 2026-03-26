@@ -6,18 +6,42 @@ let db = null;
 let dbType = null;
 
 // Check if we should use Postgres (Supabase) or SQLite
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim();
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
-const usePostgres = DATABASE_URL && DATABASE_URL.startsWith('postgresql://');
+const usePostgres = DATABASE_URL && /^postgres(ql)?:\/\//i.test(DATABASE_URL);
+
+function normalizePostgresUrl(url) {
+    const s = String(url).trim();
+    const isLocal = /localhost|127\.0\.0\.1/i.test(s);
+    if (isLocal || /sslmode=/i.test(s)) return s;
+    const join = s.includes('?') ? '&' : '?';
+    return `${s}${join}sslmode=require`;
+}
 
 if (usePostgres) {
     // Use Supabase/Postgres
     dbType = 'postgres';
     const { Pool } = require('pg');
+    const connectionString = normalizePostgresUrl(DATABASE_URL);
+    const isLocalPg = /localhost|127\.0\.0\.1/i.test(connectionString);
     const pool = new Pool({
-        connectionString: DATABASE_URL,
-        ssl: DATABASE_URL.includes('supabase.co') ? { rejectUnauthorized: false } : false
+        connectionString,
+        max: isVercel ? 1 : 10,
+        connectionTimeoutMillis: isVercel ? 20000 : 10000,
+        idleTimeoutMillis: isVercel ? 60000 : 30000,
+        // Managed Postgres (Supabase, Neon, Railway, etc.) almost always requires TLS
+        ssl: isLocalPg ? false : { rejectUnauthorized: false }
     });
+
+    // Ensure DDL completes before queries; must reject on failure (do not swallow errors)
+    const pgReady = initializePostgresTables(pool).catch((err) => {
+        console.error('⚠️  Postgres table init failed:', err.code || '', err.message);
+        return Promise.reject(err);
+    });
+
+    function preparePgQuery(query) {
+        return convertSQLiteToPostgres(query);
+    }
 
     // Create a SQLite-compatible interface for Postgres
     db = {
@@ -25,8 +49,10 @@ if (usePostgres) {
         
         // Convert SQLite query to Postgres and execute
         get: (query, params, callback) => {
-            const pgQuery = convertSQLiteToPostgres(query);
-            pool.query(pgQuery, params || [])
+            pgReady.then(() => {
+                const pgQuery = preparePgQuery(query);
+                return pool.query(pgQuery, params || []);
+            })
                 .then(result => {
                     callback(null, result.rows[0] || null);
                 })
@@ -36,14 +62,14 @@ if (usePostgres) {
         },
         
         run: (query, params, callback) => {
-            const pgQuery = convertSQLiteToPostgres(query);
-            // For INSERT queries, add RETURNING id if not present
-            let finalQuery = pgQuery;
-            if (pgQuery.trim().toUpperCase().startsWith('INSERT') && !pgQuery.includes('RETURNING')) {
-                finalQuery = pgQuery.replace(/;?\s*$/, '') + ' RETURNING id';
-            }
-            
-            pool.query(finalQuery, params || [])
+            pgReady.then(() => {
+                const pgQuery = preparePgQuery(query);
+                let finalQuery = pgQuery;
+                if (finalQuery.trim().toUpperCase().startsWith('INSERT') && !finalQuery.includes('RETURNING')) {
+                    finalQuery = finalQuery.replace(/;?\s*$/, '') + ' RETURNING id';
+                }
+                return pool.query(finalQuery, params || []);
+            })
                 .then(result => {
                     const mockResult = {
                         lastID: result.rows[0]?.id || 0,
@@ -55,13 +81,14 @@ if (usePostgres) {
                 })
                 .catch(err => {
                     if (callback) callback(err);
-                    throw err;
                 });
         },
         
         all: (query, params, callback) => {
-            const pgQuery = convertSQLiteToPostgres(query);
-            pool.query(pgQuery, params || [])
+            pgReady.then(() => {
+                const pgQuery = preparePgQuery(query);
+                return pool.query(pgQuery, params || []);
+            })
                 .then(result => {
                     callback(null, result.rows);
                 })
@@ -71,8 +98,10 @@ if (usePostgres) {
         },
         
         each: (query, params, callback, complete) => {
-            const pgQuery = convertSQLiteToPostgres(query);
-            pool.query(pgQuery, params || [])
+            pgReady.then(() => {
+                const pgQuery = preparePgQuery(query);
+                return pool.query(pgQuery, params || []);
+            })
                 .then(result => {
                     result.rows.forEach((row, index) => {
                         callback(null, row, index);
@@ -96,15 +125,6 @@ if (usePostgres) {
     };
     
     console.log('✅ Connected to Supabase/Postgres database');
-    
-    // Initialize tables (Postgres uses SERIAL instead of AUTOINCREMENT)
-    // CRITICAL: Don't await this - let it run in background to avoid blocking module load
-    // If initialization fails, it will be retried on first query
-    initializePostgresTables(pool).catch(err => {
-        console.error('⚠️  Database table initialization failed (will retry on first query):', err.message);
-        // Don't throw - allow the app to continue
-        // Tables will be created on first query if they don't exist
-    });
     
 } else if (isVercel) {
     // On Vercel but no DATABASE_URL - show error
@@ -149,13 +169,15 @@ if (usePostgres) {
     });
 }
 
+// Replace SQLite ? placeholders with Postgres $1, $2, ... (required by node-pg)
+function convertQuestionMarksToPgPlaceholders(query) {
+    let n = 0;
+    return String(query).replace(/\?/g, () => `$${++n}`);
+}
+
 // Convert SQLite syntax to Postgres syntax
 function convertSQLiteToPostgres(query) {
-    let pgQuery = query;
-    
-    // Replace SQLite placeholders (?) with Postgres ($1, $2, etc.)
-    // This is a simple approach - for production, use a proper query builder
-    // But for our use case, we'll handle it in the adapter by using parameterized queries
+    let pgQuery = convertQuestionMarksToPgPlaceholders(query);
     
     // Replace INTEGER PRIMARY KEY AUTOINCREMENT with SERIAL PRIMARY KEY
     pgQuery = pgQuery.replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY');
@@ -171,62 +193,48 @@ function convertSQLiteToPostgres(query) {
 
 // Initialize Postgres tables
 async function initializePostgresTables(pool) {
-    try {
-        // Create users table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL,
-                password TEXT,
-                name TEXT,
-                provider TEXT,
-                provider_id TEXT,
-                is_admin INTEGER DEFAULT 0,
-                email_verified INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(provider, provider_id)
-            )
-        `);
-        
-        // Create verification_codes table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS verification_codes (
-                id SERIAL PRIMARY KEY,
-                email TEXT NOT NULL,
-                code TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                expires_at TIMESTAMP NOT NULL,
-                used INTEGER DEFAULT 0
-            )
-        `);
-        
-        // Create indexes (these may fail if they already exist, which is fine)
-        try {
-            await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
-        } catch (e) {
-            // Index might already exist, ignore
-        }
-        try {
-            await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id)`);
-        } catch (e) {
-            // Index might already exist, ignore
-        }
-        try {
-            await pool.query(`CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)`);
-        } catch (e) {
-            // Index might already exist, ignore
-        }
-        
-        console.log('✅ Database tables initialized');
-    } catch (err) {
-        // Log error but don't throw - allow app to continue
-        // Tables will be created on first query if they don't exist
-        console.error('⚠️  Error initializing tables (non-fatal):', err.message);
-        // Re-throw only if it's a critical connection error
-        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-            throw err;
-        }
-    }
+    // Create users table (no UNIQUE(provider, provider_id): blocks multiple email/password rows on some setups)
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT,
+            name TEXT,
+            provider TEXT,
+            provider_id TEXT,
+            is_admin INTEGER DEFAULT 0,
+            email_verified INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Drop legacy composite unique if present (allows many NULL provider rows for password accounts)
+    await pool.query(`
+        ALTER TABLE users DROP CONSTRAINT IF EXISTS users_provider_provider_id_key
+    `);
+
+    await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oauth_identity
+        ON users (provider, provider_id)
+        WHERE provider IS NOT NULL AND provider_id IS NOT NULL
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS verification_codes (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL,
+            code TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP NOT NULL,
+            used INTEGER DEFAULT 0
+        )
+    `);
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)`);
+
+    console.log('✅ Database tables initialized');
 }
 
 // Initialize SQLite tables
