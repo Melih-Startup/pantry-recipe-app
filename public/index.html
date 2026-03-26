@@ -1577,27 +1577,50 @@
             gap: 10px;
         }
 
-        .welcome-option-btn.scan-btn {
+        .welcome-option-btn {
             flex-direction: row;
             align-items: center;
-            justify-content: space-between;
-            gap: 20px;
+            gap: 16px;
         }
 
-        .scan-btn-content {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            flex: 1;
-        }
-
-        .scan-icon {
-            width: 48px;
-            height: 48px;
+        .mode-btn-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .quick-btn .mode-btn-icon {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        }
+
+        .plan-btn .mode-btn-icon {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        }
+
+        .mode-btn-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            text-align: left;
+        }
+
+        .mode-btn-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .mode-btn-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 400;
+            line-height: 1.4;
         }
 
         .welcome-option-btn::before {
@@ -1612,16 +1635,16 @@
             transition: transform 0.3s ease;
         }
 
-        .welcome-option-btn.scan-btn::before {
+        .welcome-option-btn.quick-btn::before {
             background: linear-gradient(90deg, #dc2626, #ef4444);
         }
 
-        .welcome-option-btn.text-btn::before {
-            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        .welcome-option-btn.plan-btn::before {
+            background: linear-gradient(90deg, #ea580c, #f59e0b);
         }
 
         .welcome-option-btn:hover {
-            transform: translateY(-3px);
+            transform: translateY(-3px) scale(1.02);
             box-shadow: 0 8px 30px rgba(220, 38, 38, 0.25), 0 4px 12px rgba(234, 88, 12, 0.2);
         }
 
@@ -1629,32 +1652,26 @@
             transform: scaleX(1);
         }
 
-        .welcome-option-btn.scan-btn:hover {
+        .welcome-option-btn.quick-btn:hover {
             background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+            box-shadow: 0 15px 40px rgba(220, 38, 38, 0.3);
         }
 
-        .welcome-option-btn.text-btn:hover {
-            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        .welcome-option-btn.quick-btn:hover .mode-btn-icon {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
         }
 
-        .welcome-option-btn:hover {
-            transform: translateY(-3px) scale(1.05);
+        .welcome-option-btn.plan-btn:hover {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            box-shadow: 0 15px 40px rgba(234, 88, 12, 0.3);
         }
 
-        .welcome-option-btn.scan-btn:hover {
-            box-shadow: 0 15px 40px rgba(220, 38, 38, 0.5);
-        }
-
-        .welcome-option-btn.text-btn:hover {
-            box-shadow: 0 15px 40px rgba(220, 38, 38, 0.5);
-        }
-
-        .welcome-option-btn:hover::before {
-            left: 100%;
+        .welcome-option-btn.plan-btn:hover .mode-btn-icon {
+            background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
         }
 
         .welcome-option-btn:active {
-            transform: translateY(-1px) scale(1.02);
+            transform: translateY(-1px) scale(1.01);
         }
 
         /* Scan Modal Styles */
@@ -1905,6 +1922,315 @@
             margin-top: 20px;
             color: #495057;
             font-size: 1rem;
+        }
+
+        /* Quick Mode Scan Area */
+        .quick-scan-area, .plan-photo-area {
+            background: linear-gradient(135deg, #fefce8 0%, #fef9c3 30%, #fef2f2 100%);
+            border: 2px dashed #e5e7eb;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 0;
+            transition: all 0.3s ease;
+        }
+
+        .quick-scan-area:hover, .plan-photo-area:hover {
+            border-color: #dc2626;
+            background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+        }
+
+        .quick-scan-header, .plan-photo-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #1a202c;
+            margin-bottom: 6px;
+        }
+
+        .quick-scan-desc, .plan-photo-desc {
+            color: #64748b;
+            font-size: 0.88rem;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .quick-scan-actions, .plan-photo-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-scan-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid #dc2626;
+            background: #ffffff;
+            color: #dc2626;
+            font-family: inherit;
+        }
+
+        .quick-scan-btn:hover {
+            background: #dc2626;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .quick-scan-upload-btn {
+            border-color: #64748b;
+            color: #64748b;
+        }
+
+        .quick-scan-upload-btn:hover {
+            background: #64748b;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+        }
+
+        .quick-scan-preview {
+            margin-top: 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .quick-scan-preview img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 12px;
+            display: block;
+        }
+
+        .quick-scan-preview-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        .quick-scan-preview-btn {
+            padding: 6px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            color: #dc2626;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .quick-scan-preview-btn:hover {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .quick-scan-loading {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .quick-scan-loading p {
+            color: #64748b;
+            margin-top: 12px;
+            font-size: 0.92rem;
+        }
+
+        /* Mode divider */
+        .mode-divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            gap: 16px;
+        }
+
+        .mode-divider::before,
+        .mode-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+        }
+
+        .mode-divider span {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* Plan Mode Styles */
+        .plan-intro {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .plan-intro h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 6px;
+        }
+
+        .plan-intro p {
+            color: #64748b;
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .plan-meals-section, .plan-time-section, .plan-prefs-section {
+            margin-top: 24px;
+        }
+
+        .plan-section-label {
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 0.95rem;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .plan-meal-toggles {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .plan-meal-toggle {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 16px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            background: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .plan-meal-toggle .plan-meal-icon {
+            font-size: 1.5rem;
+        }
+
+        .plan-meal-toggle .plan-meal-name {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .plan-meal-toggle.active {
+            border-color: #dc2626;
+            background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+        }
+
+        .plan-meal-toggle.active .plan-meal-name {
+            color: #dc2626;
+        }
+
+        .plan-meal-toggle:hover:not(.active) {
+            border-color: #fca5a5;
+            background: #fefce8;
+        }
+
+        .plan-time-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .plan-time-btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #475569;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .plan-time-btn.active {
+            border-color: #ea580c;
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            color: #ea580c;
+            box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+        }
+
+        .plan-time-btn:hover:not(.active) {
+            border-color: #fdba74;
+            background: #fffbeb;
+        }
+
+        .plan-prefs-section {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .plan-prefs-section .input-section {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .plan-detected-ingredients {
+            margin-top: 16px;
+        }
+
+        .plan-detected-ingredients label {
+            display: block;
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 0.92rem;
+            margin-bottom: 8px;
+        }
+
+        .plan-detected-ingredients textarea {
+            width: 100%;
+            min-height: 80px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 0.92rem;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
+
+        .plan-detected-ingredients textarea:focus {
+            outline: none;
+            border-color: #ea580c;
+        }
+
+        .plan-generate-btn {
+            background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%) !important;
+        }
+
+        .plan-generate-btn:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%) !important;
+        }
+
+        .mode-view {
+            animation: fadeInUp 0.5s ease-out;
         }
 
         .recipe-generator {
@@ -2647,10 +2973,6 @@
                 min-height: 80px;
             }
 
-            .scan-btn-content {
-                gap: 4px;
-            }
-
             /* Full-screen camera tablet adjustments */
             .scan-camera-controls-fullscreen {
                 bottom: 35px;
@@ -2687,7 +3009,11 @@
                 width: 100%;
                 box-sizing: border-box;
             }
-            .tag, .option-btn { padding: 8px 14px; font-size: 0.8rem; }
+            .tag { padding: 8px 14px; font-size: 0.8rem; }
+            .quick-scan-actions, .plan-photo-actions { flex-direction: column; }
+            .plan-meal-toggles { gap: 8px; }
+            .plan-prefs-section { flex-direction: column; }
+            .plan-prefs-section .input-section { min-width: 100%; }
             .recipe-images { grid-template-columns: 1fr; gap: 12px; }
             .dish-reviews-header { flex-direction: column; align-items: flex-start; gap: 10px; }
             .recipe-generator .container {
@@ -3166,36 +3492,32 @@
         <h1 class="welcome-title">Welcome to PantryPal</h1>
         <p class="welcome-subtitle">Your new AI Cook</p>
         <div class="welcome-options">
-            <button class="welcome-option-btn scan-btn" id="scanBtn">
-                <div class="scan-btn-content">
-                    <span style="font-size: 1.3rem; font-weight: 600;">Scan</span>
-                    <span style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Use camera to scan ingredients</span>
-                </div>
-                <div class="scan-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- QR Code style - corner squares and grid pattern -->
-                        <rect x="3" y="3" width="7" height="7" fill="#dc2626" rx="1"/>
-                        <rect x="5" y="5" width="3" height="3" fill="#ffffff"/>
-                        <rect x="14" y="3" width="7" height="7" fill="#dc2626" rx="1"/>
-                        <rect x="16" y="5" width="3" height="3" fill="#ffffff"/>
-                        <rect x="3" y="14" width="7" height="7" fill="#dc2626" rx="1"/>
-                        <rect x="5" y="16" width="3" height="3" fill="#ffffff"/>
-                        <!-- Grid pattern in the middle -->
-                        <rect x="12" y="12" width="2" height="2" fill="#dc2626"/>
-                        <rect x="15" y="12" width="1" height="2" fill="#dc2626"/>
-                        <rect x="17" y="12" width="2" height="2" fill="#dc2626"/>
-                        <rect x="12" y="15" width="1" height="1" fill="#dc2626"/>
-                        <rect x="14" y="15" width="2" height="1" fill="#dc2626"/>
-                        <rect x="17" y="15" width="1" height="1" fill="#dc2626"/>
-                        <rect x="12" y="17" width="2" height="2" fill="#dc2626"/>
-                        <rect x="15" y="17" width="1" height="2" fill="#dc2626"/>
-                        <rect x="17" y="17" width="2" height="2" fill="#dc2626"/>
+            <button class="welcome-option-btn quick-btn" id="quickModeBtn">
+                <div class="mode-btn-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#dc2626" stroke="#dc2626" stroke-width="1.5" stroke-linejoin="round"/>
                     </svg>
                 </div>
+                <div class="mode-btn-content">
+                    <span class="mode-btn-title">Quick</span>
+                    <span class="mode-btn-desc">Scan or type ingredients, get recipes fast</span>
+                </div>
             </button>
-            <button class="welcome-option-btn text-btn" id="textBtn">
-                <span style="font-size: 1.3rem; font-weight: 600;">Text</span>
-                <span style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Type your ingredients manually</span>
+            <button class="welcome-option-btn plan-btn" id="planModeBtn">
+                <div class="mode-btn-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="4" width="18" height="18" rx="2" stroke="#dc2626" stroke-width="1.5"/>
+                        <path d="M3 10h18" stroke="#dc2626" stroke-width="1.5"/>
+                        <path d="M8 2v4M16 2v4" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="8" cy="15" r="1.5" fill="#dc2626"/>
+                        <circle cx="12" cy="15" r="1.5" fill="#dc2626"/>
+                        <circle cx="16" cy="15" r="1.5" fill="#dc2626"/>
+                    </svg>
+                </div>
+                <div class="mode-btn-content">
+                    <span class="mode-btn-title">Plan</span>
+                    <span class="mode-btn-desc">Photo your grocery haul, plan meals for the week</span>
+                </div>
             </button>
         </div>
 
@@ -3279,125 +3601,168 @@
             </div>
         </div>
 
-        <!-- Recipe Generator (shown inline when Text is selected) -->
+        <!-- Recipe Generator (shown inline when a mode is selected) -->
         <div class="recipe-generator" id="recipeGenerator">
         <div class="container">
         <div class="card">
-            <div class="context-box">
-                <div class="input-section" style="margin-bottom: 0;">
-                    <label for="context">Tell me about your needs (optional)</label>
-                    <input
-                        type="text"
-                        id="context"
-                        placeholder="e.g., I have 20 people coming over and want hot comfort food..."
-                    />
-                </div>
-            </div>
 
-            <div class="quick-options">
-                <div class="quick-options-title">Quick Options</div>
-
-                <div class="input-section">
-                    <label for="servingsInput">How many people are going to be fed?</label>
-                    <input
-                        type="number"
-                        id="servingsInput"
-                        placeholder="Enter number of people (e.g., 4)"
-                        min="1"
-                        step="1"
-                    />
-                </div>
-
-                <div class="options-row">
-                    <span class="option-label">Meal type:</span>
-                    <button class="option-btn" data-type="meal" data-value="hot food">Hot Food</button>
-                    <button class="option-btn" data-type="meal" data-value="cold dishes">Cold Dishes</button>
-                    <button class="option-btn" data-type="meal" data-value="appetizers">Appetizers</button>
-                    <button class="option-btn" data-type="meal" data-value="dessert">Dessert</button>
-                </div>
-
-                <div class="input-section">
-                    <label for="dietaryInput">Any dietary restrictions? If so, what are they?</label>
-                    <input
-                        type="text"
-                        id="dietaryInput"
-                        placeholder="e.g., vegetarian, gluten-free, nut allergy, etc."
-                    />
-                </div>
-
-                <div class="options-row">
-                    <span class="option-label">Time:</span>
-                    <button class="option-btn" data-type="time" data-value="quick 15-minute">Quick (15 min)</button>
-                    <button class="option-btn" data-type="time" data-value="30-minute">30 min</button>
-                    <button class="option-btn" data-type="time" data-value="1-hour">1 hour</button>
-                    <button class="option-btn" data-type="time" data-value="slow cooker">Slow Cooker</button>
-                </div>
-
-                <div class="input-section">
-                    <label for="cuisineInput">Cuisine preference (optional)</label>
-                    <input
-                        type="text"
-                        id="cuisineInput"
-                        placeholder="e.g., Italian, Mexican, Asian, etc."
-                    />
-                </div>
-            </div>
-
-            <div class="budget-section">
-                <div class="budget-toggle" id="budgetToggle">
-                    <span class="toggle-icon">$</span>
-                    <span>Add Budget (optional)</span>
-                    <span class="toggle-arrow" id="toggleArrow">+</span>
-                </div>
-                <div class="budget-input-wrapper" id="budgetWrapper">
-                    <div class="budget-input-group">
-                        <span class="currency-symbol">$</span>
-                        <input
-                            type="number"
-                            id="budget"
-                            placeholder="Enter your budget"
-                            min="0"
-                            step="0.01"
-                        />
+            <!-- ===== QUICK MODE ===== -->
+            <div class="mode-view" id="quickModeView">
+                <!-- Inline scan area -->
+                <div class="quick-scan-area" id="quickScanArea">
+                    <div class="quick-scan-header">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" fill="#dc2626" rx="1"/><rect x="5" y="5" width="3" height="3" fill="#fff"/><rect x="14" y="3" width="7" height="7" fill="#dc2626" rx="1"/><rect x="16" y="5" width="3" height="3" fill="#fff"/><rect x="3" y="14" width="7" height="7" fill="#dc2626" rx="1"/><rect x="5" y="16" width="3" height="3" fill="#fff"/></svg>
+                        <span>Scan Your Pantry</span>
                     </div>
-                    <p class="budget-hint">Estimated cost for additional ingredients you may need to buy</p>
+                    <p class="quick-scan-desc">Take a photo of your fridge or pantry and we'll identify the ingredients for you.</p>
+                    <div class="quick-scan-actions">
+                        <button class="quick-scan-btn" id="quickScanCameraBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg>
+                            Open Camera
+                        </button>
+                        <label class="quick-scan-btn quick-scan-upload-btn" for="quickScanUpload">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Upload Photo
+                        </label>
+                        <input type="file" id="quickScanUpload" accept="image/*" style="display:none;" />
+                    </div>
+                    <div class="quick-scan-preview" id="quickScanPreview" style="display:none;">
+                        <img id="quickScanPreviewImg" src="" alt="Scan preview" />
+                        <div class="quick-scan-preview-actions">
+                            <button class="quick-scan-preview-btn" id="quickScanClear">Remove</button>
+                        </div>
+                    </div>
+                    <div class="quick-scan-loading" id="quickScanLoading" style="display:none;">
+                        <div class="spinner-container"><div class="spinner-dot"></div><div class="spinner-dot"></div><div class="spinner-dot"></div></div>
+                        <p>Analyzing your pantry...</p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="input-section" id="ingredientsSection">
-                <label for="ingredients">What's in your pantry?</label>
-                <textarea
-                    id="ingredients"
-                    placeholder="Enter your ingredients separated by commas...&#10;Example: chicken, rice, garlic, onions, soy sauce"
-                ></textarea>
-            </div>
-
-            <div class="common-items" id="commonItemsSection">
-                <p>Quick add common items</p>
-                <div class="tag-container">
-                    <button class="tag" data-item="eggs">Eggs</button>
-                    <button class="tag" data-item="milk">Milk</button>
-                    <button class="tag" data-item="butter">Butter</button>
-                    <button class="tag" data-item="flour">Flour</button>
-                    <button class="tag" data-item="sugar">Sugar</button>
-                    <button class="tag" data-item="rice">Rice</button>
-                    <button class="tag" data-item="pasta">Pasta</button>
-                    <button class="tag" data-item="chicken">Chicken</button>
-                    <button class="tag" data-item="beef">Beef</button>
-                    <button class="tag" data-item="onions">Onions</button>
-                    <button class="tag" data-item="garlic">Garlic</button>
-                    <button class="tag" data-item="tomatoes">Tomatoes</button>
-                    <button class="tag" data-item="potatoes">Potatoes</button>
-                    <button class="tag" data-item="cheese">Cheese</button>
-                    <button class="tag" data-item="olive oil">Olive Oil</button>
-                    <button class="tag" data-item="salt">Salt</button>
-                    <button class="tag" data-item="pepper">Pepper</button>
-                    <button class="tag" data-item="bread">Bread</button>
+                <div class="mode-divider">
+                    <span>or type your ingredients</span>
                 </div>
+
+                <div class="input-section" id="ingredientsSection">
+                    <label for="ingredients">What's in your pantry?</label>
+                    <textarea
+                        id="ingredients"
+                        placeholder="Enter your ingredients separated by commas...&#10;Example: chicken, rice, garlic, onions, soy sauce"
+                    ></textarea>
+                </div>
+
+                <div class="common-items" id="commonItemsSection">
+                    <p>Quick add common items</p>
+                    <div class="tag-container">
+                        <button class="tag" data-item="eggs">Eggs</button>
+                        <button class="tag" data-item="milk">Milk</button>
+                        <button class="tag" data-item="butter">Butter</button>
+                        <button class="tag" data-item="flour">Flour</button>
+                        <button class="tag" data-item="sugar">Sugar</button>
+                        <button class="tag" data-item="rice">Rice</button>
+                        <button class="tag" data-item="pasta">Pasta</button>
+                        <button class="tag" data-item="chicken">Chicken</button>
+                        <button class="tag" data-item="beef">Beef</button>
+                        <button class="tag" data-item="onions">Onions</button>
+                        <button class="tag" data-item="garlic">Garlic</button>
+                        <button class="tag" data-item="tomatoes">Tomatoes</button>
+                        <button class="tag" data-item="potatoes">Potatoes</button>
+                        <button class="tag" data-item="cheese">Cheese</button>
+                        <button class="tag" data-item="olive oil">Olive Oil</button>
+                        <button class="tag" data-item="salt">Salt</button>
+                        <button class="tag" data-item="pepper">Pepper</button>
+                        <button class="tag" data-item="bread">Bread</button>
+                    </div>
+                </div>
+
+                <button class="generate-btn" id="generateBtn">Generate Recipes</button>
             </div>
 
-            <button class="generate-btn" id="generateBtn">Generate Recipes</button>
+            <!-- ===== PLAN MODE ===== -->
+            <div class="mode-view" id="planModeView" style="display:none;">
+                <div class="plan-intro">
+                    <h3>Meal Plan from Your Grocery Haul</h3>
+                    <p>Snap a photo of your groceries every time you do a haul. We'll plan your meals for the week.</p>
+                </div>
 
+                <!-- Photo upload for grocery haul -->
+                <div class="plan-photo-area" id="planPhotoArea">
+                    <div class="plan-photo-header">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="#ea580c" stroke-width="2" stroke-linejoin="round"/><path d="M3 6h18" stroke="#ea580c" stroke-width="2"/><path d="M16 10a4 4 0 01-8 0" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/></svg>
+                        <span>Photo Your Grocery Haul</span>
+                    </div>
+                    <p class="plan-photo-desc">Take a picture every time you buy groceries. We'll identify everything and build a meal plan.</p>
+                    <div class="plan-photo-actions">
+                        <button class="quick-scan-btn" id="planPhotoCameraBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg>
+                            Open Camera
+                        </button>
+                        <label class="quick-scan-btn quick-scan-upload-btn" for="planPhotoUpload">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Upload Photo
+                        </label>
+                        <input type="file" id="planPhotoUpload" accept="image/*" style="display:none;" />
+                    </div>
+                    <div class="quick-scan-preview" id="planPhotoPreview" style="display:none;">
+                        <img id="planPhotoPreviewImg" src="" alt="Grocery haul preview" />
+                        <div class="quick-scan-preview-actions">
+                            <button class="quick-scan-preview-btn" id="planPhotoClear">Remove</button>
+                        </div>
+                    </div>
+                    <div class="quick-scan-loading" id="planPhotoLoading" style="display:none;">
+                        <div class="spinner-container"><div class="spinner-dot"></div><div class="spinner-dot"></div><div class="spinner-dot"></div></div>
+                        <p>Identifying your groceries...</p>
+                    </div>
+                    <div class="plan-detected-ingredients" id="planDetectedIngredients" style="display:none;">
+                        <label>Detected Ingredients</label>
+                        <textarea id="planIngredients" placeholder="Ingredients will appear here after scanning..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Meal selection toggles -->
+                <div class="plan-meals-section">
+                    <label class="plan-section-label">Which meals do you want to plan?</label>
+                    <div class="plan-meal-toggles">
+                        <button class="plan-meal-toggle active" data-meal="breakfast" id="toggleBreakfast">
+                            <span class="plan-meal-icon">🌅</span>
+                            <span class="plan-meal-name">Breakfast</span>
+                        </button>
+                        <button class="plan-meal-toggle active" data-meal="lunch" id="toggleLunch">
+                            <span class="plan-meal-icon">☀️</span>
+                            <span class="plan-meal-name">Lunch</span>
+                        </button>
+                        <button class="plan-meal-toggle active" data-meal="dinner" id="toggleDinner">
+                            <span class="plan-meal-icon">🌙</span>
+                            <span class="plan-meal-name">Dinner</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time/duration picker -->
+                <div class="plan-time-section">
+                    <label class="plan-section-label">How many days to plan for?</label>
+                    <div class="plan-time-options">
+                        <button class="plan-time-btn" data-days="3">3 days</button>
+                        <button class="plan-time-btn active" data-days="5">5 days</button>
+                        <button class="plan-time-btn" data-days="7">7 days</button>
+                    </div>
+                </div>
+
+                <!-- Optional preferences -->
+                <div class="plan-prefs-section">
+                    <div class="input-section">
+                        <label for="planDietary">Dietary restrictions (optional)</label>
+                        <input type="text" id="planDietary" placeholder="e.g., vegetarian, gluten-free, nut allergy..." />
+                    </div>
+                    <div class="input-section">
+                        <label for="planPeople">How many people?</label>
+                        <input type="number" id="planPeople" placeholder="e.g., 4" min="1" step="1" />
+                    </div>
+                </div>
+
+                <button class="generate-btn plan-generate-btn" id="planGenerateBtn">Generate Meal Plan</button>
+            </div>
+
+            <!-- Shared results area -->
             <div class="loading" id="loading">
                 <div class="spinner-container">
                     <div class="spinner-dot"></div>
@@ -4066,51 +4431,50 @@
         }
 
         // Welcome Page Navigation
-        // Note: navBar already declared at top of script (line 3323)
         const recipeGenerator = document.getElementById('recipeGenerator');
-        const scanBtn = document.getElementById('scanBtn');
-        const textBtn = document.getElementById('textBtn');
+        const quickModeBtn = document.getElementById('quickModeBtn');
+        const planModeBtn = document.getElementById('planModeBtn');
+        const quickModeView = document.getElementById('quickModeView');
+        const planModeView = document.getElementById('planModeView');
         const navHomeBtn = document.getElementById('navHomeBtn');
-        // #region agent log
-        try {
-            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3847',message:'Welcome page elements selected',data:{textBtn:!!textBtn,scanBtn:!!scanBtn,recipeGenerator:!!recipeGenerator,navBar:!!navBar},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'FIXED'})}).catch(()=>{});
-        } catch(e){}
-        // #endregion
+        let currentMode = null; // 'quick' or 'plan'
 
-        // Text button - Show recipe generator inline
-        // #region agent log
-        try {
-            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3703',message:'Attaching textBtn listener',data:{textBtn:!!textBtn},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
-        } catch(e){}
-        // #endregion
-        if (textBtn) {
-        textBtn.addEventListener('click', () => {
-            // #region agent log
-            try {
-                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3704',message:'Text button clicked',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            } catch(e){}
-            // #endregion
+        function showMode(mode) {
+            currentMode = mode;
             const welcomeOptions = document.querySelector('.welcome-options');
             welcomeOptions.classList.add('hidden');
-            
             const welcomeTitle = document.querySelector('.welcome-title');
             const welcomeSubtitle = document.querySelector('.welcome-subtitle');
             if (welcomeTitle) welcomeTitle.style.display = 'none';
             if (welcomeSubtitle) welcomeSubtitle.style.display = 'none';
-            
-            // Show chatbot on text page
+
             const chatWidget = document.querySelector('.chat-widget');
             if (chatWidget) chatWidget.classList.add('show');
-            
+
+            if (mode === 'quick') {
+                quickModeView.style.display = 'block';
+                planModeView.style.display = 'none';
+            } else {
+                quickModeView.style.display = 'none';
+                planModeView.style.display = 'block';
+            }
+
             setTimeout(() => {
                 recipeGenerator.classList.add('show');
                 navBar.classList.add('show');
                 recipeGenerator.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 200);
-        });
         }
 
-        // Scan button - Open full-screen camera
+        if (quickModeBtn) {
+            quickModeBtn.addEventListener('click', () => showMode('quick'));
+        }
+
+        if (planModeBtn) {
+            planModeBtn.addEventListener('click', () => showMode('plan'));
+        }
+
+        // Full-screen camera elements (kept for camera-based scanning)
         const scanCameraFullscreen = document.getElementById('scanCameraFullscreen');
         const scanCloseBtnFullscreen = document.getElementById('scanCloseBtnFullscreen');
         const scanCameraPlaceholderFullscreen = document.getElementById('scanCameraPlaceholderFullscreen');
@@ -4129,52 +4493,169 @@
         const scanSubmitBtnFullscreen = document.getElementById('scanSubmitBtnFullscreen');
         let stream = null;
         let capturedImageData = null;
+        let scanTargetMode = 'quick'; // which mode triggered the camera
 
-        // #region agent log
-        try {
-            fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3905',message:'Attaching scanBtn listener',data:{scanBtn:!!scanBtn},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
-        } catch(e){}
-        // #endregion
-        if (scanBtn) {
-        scanBtn.addEventListener('click', async () => {
-            // #region agent log
+        // Quick mode scan buttons
+        const quickScanCameraBtn = document.getElementById('quickScanCameraBtn');
+        const quickScanUpload = document.getElementById('quickScanUpload');
+        const quickScanPreview = document.getElementById('quickScanPreview');
+        const quickScanPreviewImg = document.getElementById('quickScanPreviewImg');
+        const quickScanClear = document.getElementById('quickScanClear');
+        const quickScanLoading = document.getElementById('quickScanLoading');
+
+        // Plan mode photo buttons
+        const planPhotoCameraBtn = document.getElementById('planPhotoCameraBtn');
+        const planPhotoUpload = document.getElementById('planPhotoUpload');
+        const planPhotoPreview = document.getElementById('planPhotoPreview');
+        const planPhotoPreviewImg = document.getElementById('planPhotoPreviewImg');
+        const planPhotoClear = document.getElementById('planPhotoClear');
+        const planPhotoLoading = document.getElementById('planPhotoLoading');
+        const planDetectedIngredients = document.getElementById('planDetectedIngredients');
+        const planIngredientsTextarea = document.getElementById('planIngredients');
+
+        // Handle file upload scanning (shared between quick and plan)
+        async function handlePhotoScan(imageDataUrl, mode) {
+            const loadingEl = mode === 'quick' ? quickScanLoading : planPhotoLoading;
+            const previewEl = mode === 'quick' ? quickScanPreview : planPhotoPreview;
+            const previewImgEl = mode === 'quick' ? quickScanPreviewImg : planPhotoPreviewImg;
+
+            previewImgEl.src = imageDataUrl;
+            previewEl.style.display = 'block';
+            loadingEl.style.display = 'flex';
+
             try {
-                fetch('http://127.0.0.1:7242/ingest/36eea993-0762-4eaf-843c-80adc53f3a96',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:3808',message:'Scan button clicked',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            } catch(e){}
-            // #endregion
-            // Show chatbot on scan page
-            const chatWidget = document.querySelector('.chat-widget');
-            if (chatWidget) chatWidget.classList.add('show');
-            
-            scanCameraFullscreen.classList.add('show');
-            await startCamera();
-        });
+                const response = await fetch('/api/scan-pantry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageBase64: imageDataUrl })
+                });
+                const data = await response.json();
+                loadingEl.style.display = 'none';
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                if (mode === 'quick' && data.ingredients) {
+                    const ingredientsInput = document.getElementById('ingredients');
+                    if (ingredientsInput) {
+                        const existing = ingredientsInput.value.trim();
+                        ingredientsInput.value = existing ? existing + ', ' + data.ingredients : data.ingredients;
+                    }
+                } else if (mode === 'plan' && data.ingredients) {
+                    planIngredientsTextarea.value = data.ingredients;
+                    planDetectedIngredients.style.display = 'block';
+                }
+            } catch (error) {
+                loadingEl.style.display = 'none';
+                alert('Failed to scan. Please try again.');
+            }
         }
 
-        if (scanCloseBtnFullscreen) {
-        scanCloseBtnFullscreen.addEventListener('click', () => {
-            stopCamera();
-            scanCameraFullscreen.classList.remove('show');
-            resetScanCamera();
-            
-            // Hide chatbot when closing scan camera and returning to welcome page
-            const chatWidget = document.querySelector('.chat-widget');
-            if (chatWidget) chatWidget.classList.remove('show');
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Quick mode: camera button opens fullscreen camera
+        if (quickScanCameraBtn) {
+            quickScanCameraBtn.addEventListener('click', async () => {
+                scanTargetMode = 'quick';
+                scanCameraFullscreen.classList.add('show');
+                await startCamera();
+            });
+        }
+
+        // Quick mode: upload button
+        if (quickScanUpload) {
+            quickScanUpload.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const dataUrl = await readFileAsDataURL(file);
+                await handlePhotoScan(dataUrl, 'quick');
+                quickScanUpload.value = '';
+            });
+        }
+
+        // Quick mode: clear preview
+        if (quickScanClear) {
+            quickScanClear.addEventListener('click', () => {
+                quickScanPreview.style.display = 'none';
+                quickScanPreviewImg.src = '';
+            });
+        }
+
+        // Plan mode: camera button opens fullscreen camera
+        if (planPhotoCameraBtn) {
+            planPhotoCameraBtn.addEventListener('click', async () => {
+                scanTargetMode = 'plan';
+                scanCameraFullscreen.classList.add('show');
+                await startCamera();
+            });
+        }
+
+        // Plan mode: upload button
+        if (planPhotoUpload) {
+            planPhotoUpload.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const dataUrl = await readFileAsDataURL(file);
+                await handlePhotoScan(dataUrl, 'plan');
+                planPhotoUpload.value = '';
+            });
+        }
+
+        // Plan mode: clear preview
+        if (planPhotoClear) {
+            planPhotoClear.addEventListener('click', () => {
+                planPhotoPreview.style.display = 'none';
+                planPhotoPreviewImg.src = '';
+                planDetectedIngredients.style.display = 'none';
+                planIngredientsTextarea.value = '';
+            });
+        }
+
+        // Plan mode: meal toggles
+        document.querySelectorAll('.plan-meal-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+            });
         });
+
+        // Plan mode: time/day buttons
+        document.querySelectorAll('.plan-time-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.plan-time-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Fullscreen camera close
+        if (scanCloseBtnFullscreen) {
+            scanCloseBtnFullscreen.addEventListener('click', () => {
+                stopCamera();
+                scanCameraFullscreen.classList.remove('show');
+                resetScanCamera();
+            });
         }
 
         if (scanRetryBtnFullscreen) {
-        scanRetryBtnFullscreen.addEventListener('click', async () => {
-            scanErrorFullscreen.style.display = 'none';
-            await startCamera();
-        });
+            scanRetryBtnFullscreen.addEventListener('click', async () => {
+                scanErrorFullscreen.style.display = 'none';
+                await startCamera();
+            });
         }
 
         if (scanResetBtnFullscreen) {
-        scanResetBtnFullscreen.addEventListener('click', async () => {
-            stopCamera();
-            await startCamera();
-        });
+            scanResetBtnFullscreen.addEventListener('click', async () => {
+                stopCamera();
+                await startCamera();
+            });
         }
 
         function isMobileDevice() {
@@ -4293,16 +4774,16 @@
         }
 
         if (scanCaptureBtnFullscreen) {
-        scanCaptureBtnFullscreen.addEventListener('click', () => {
-            capturePhoto();
-        });
+            scanCaptureBtnFullscreen.addEventListener('click', () => {
+                capturePhoto();
+            });
         }
 
         function capturePhoto() {
-            const context = scanCanvasFullscreen.getContext('2d');
+            const ctx = scanCanvasFullscreen.getContext('2d');
             scanCanvasFullscreen.width = scanVideoFullscreen.videoWidth;
             scanCanvasFullscreen.height = scanVideoFullscreen.videoHeight;
-            context.drawImage(scanVideoFullscreen, 0, 0);
+            ctx.drawImage(scanVideoFullscreen, 0, 0);
 
             const imageData = scanCanvasFullscreen.toDataURL('image/jpeg', 0.8);
             capturedImageData = imageData;
@@ -4314,84 +4795,30 @@
         }
 
         if (scanReturnBtn) {
-        scanReturnBtn.addEventListener('click', () => {
-            scanPreviewFullscreen.classList.remove('show');
-            scanCameraFullscreen.classList.add('show');
-            startCamera();
-        });
+            scanReturnBtn.addEventListener('click', () => {
+                scanPreviewFullscreen.classList.remove('show');
+                scanCameraFullscreen.classList.add('show');
+                startCamera();
+            });
         }
 
         if (scanRetakeBtnFullscreen) {
-        scanRetakeBtnFullscreen.addEventListener('click', () => {
-            scanPreviewFullscreen.classList.remove('show');
-            scanCameraFullscreen.classList.add('show');
-            startCamera();
-        });
+            scanRetakeBtnFullscreen.addEventListener('click', () => {
+                scanPreviewFullscreen.classList.remove('show');
+                scanCameraFullscreen.classList.add('show');
+                startCamera();
+            });
         }
 
         if (scanSubmitBtnFullscreen) {
-        scanSubmitBtnFullscreen.addEventListener('click', async () => {
-            if (!capturedImageData) return;
-
-            scanPreviewFullscreen.classList.remove('show');
-            scanCameraFullscreen.classList.add('show');
-            scanCameraPlaceholderFullscreen.style.display = 'flex';
-            scanVideoFullscreen.style.display = 'none';
-            scanCameraControlsFullscreen.style.display = 'none';
-            scanSubmitBtnFullscreen.disabled = true;
-
-            try {
-                const response = await fetch('/api/scan-pantry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        imageBase64: capturedImageData
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    alert('Error: ' + data.error);
-                    resetScanCamera();
-                } else {
-                    scanCameraFullscreen.classList.remove('show');
-                    
-                    const welcomeOptions = document.querySelector('.welcome-options');
-                    const welcomeTitle = document.querySelector('.welcome-title');
-                    const welcomeSubtitle = document.querySelector('.welcome-subtitle');
-                    welcomeOptions.classList.add('hidden');
-                    if (welcomeTitle) welcomeTitle.style.display = 'none';
-                    if (welcomeSubtitle) welcomeSubtitle.style.display = 'none';
-                    
-                    if (data.ingredients) {
-                        scannedIngredients = data.ingredients;
-                        isScanMode = true;
-                        ingredientsInput.value = data.ingredients;
-                        if (ingredientsSection) {
-                            ingredientsSection.style.display = 'none';
-                        }
-                        const commonItemsSection = document.getElementById('commonItemsSection');
-                        if (commonItemsSection) {
-                            commonItemsSection.style.display = 'none';
-                        }
-                    }
-                    
-                    setTimeout(() => {
-                        recipeGenerator.classList.add('show');
-                        navBar.classList.add('show');
-                        recipeGenerator.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        resetScanCamera();
-                    }, 200);
-                }
-            } catch (error) {
-                console.error('Error scanning pantry:', error);
-                alert('Failed to scan pantry. Please try again.');
+            scanSubmitBtnFullscreen.addEventListener('click', async () => {
+                if (!capturedImageData) return;
+                scanPreviewFullscreen.classList.remove('show');
+                scanCameraFullscreen.classList.remove('show');
                 resetScanCamera();
-            } finally {
-                scanSubmitBtnFullscreen.disabled = false;
-            }
-        });
+                await handlePhotoScan(capturedImageData, scanTargetMode);
+                capturedImageData = null;
+            });
         }
 
         function resetScanCamera() {
@@ -4461,14 +4888,30 @@
         // Return to welcome page
         if (navHomeBtn) {
         navHomeBtn.addEventListener('click', () => {
-            // Hide chatbot when returning to home
             const chatWidget = document.querySelector('.chat-widget');
             if (chatWidget) chatWidget.classList.remove('show');
             
             navBar.classList.remove('show');
             recipeGenerator.classList.remove('show');
+            currentMode = null;
             isScanMode = false;
             scannedIngredients = '';
+
+            // Reset quick mode
+            if (quickScanPreview) quickScanPreview.style.display = 'none';
+            if (quickScanPreviewImg) quickScanPreviewImg.src = '';
+
+            // Reset plan mode
+            if (planPhotoPreview) planPhotoPreview.style.display = 'none';
+            if (planPhotoPreviewImg) planPhotoPreviewImg.src = '';
+            if (planDetectedIngredients) planDetectedIngredients.style.display = 'none';
+            if (planIngredientsTextarea) planIngredientsTextarea.value = '';
+
+            // Reset result area
+            const resultEl = document.getElementById('result');
+            if (resultEl) resultEl.classList.remove('show');
+
+            const ingredientsSection = document.getElementById('ingredientsSection');
             if (ingredientsSection) {
                 ingredientsSection.style.display = 'block';
             }
@@ -4489,11 +4932,8 @@
 
         const ingredientsInput = document.getElementById('ingredients');
         const ingredientsSection = document.getElementById('ingredientsSection');
-        const contextInput = document.getElementById('context');
-        const budgetInput = document.getElementById('budget');
-        const budgetToggle = document.getElementById('budgetToggle');
-        const budgetWrapper = document.getElementById('budgetWrapper');
         const generateBtn = document.getElementById('generateBtn');
+        const planGenerateBtn = document.getElementById('planGenerateBtn');
         const loading = document.getElementById('loading');
         const result = document.getElementById('result');
         const recipeContent = document.getElementById('recipeContent');
@@ -4503,29 +4943,9 @@
         const reviewsLoading = document.getElementById('reviewsLoading');
         const errorDiv = document.getElementById('error');
         const tags = document.querySelectorAll('.tag');
-        const optionBtns = document.querySelectorAll('.option-btn');
-        const servingsInput = document.getElementById('servingsInput');
-        const dietaryInput = document.getElementById('dietaryInput');
-        const cuisineInput = document.getElementById('cuisineInput');
         
         let isScanMode = false;
         let scannedIngredients = '';
-
-        budgetToggle.addEventListener('click', () => {
-            budgetToggle.classList.toggle('active');
-            budgetWrapper.classList.toggle('show');
-            if (!budgetWrapper.classList.contains('show')) {
-                budgetInput.value = '';
-            }
-        });
-
-        const selectedOptions = {
-            servings: null,
-            meal: null,
-            diet: null,
-            time: null,
-            cuisine: null
-        };
 
         tags.forEach((tag, index) => {
             tag.style.opacity = '0';
@@ -4535,24 +4955,6 @@
                 tag.style.opacity = '1';
                 tag.style.transform = 'translateY(0)';
             }, 500 + (index * 25));
-        });
-
-        optionBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const type = btn.dataset.type;
-                const value = btn.dataset.value;
-
-                document.querySelectorAll(`.option-btn[data-type="${type}"]`).forEach(b => {
-                    b.classList.remove('selected');
-                });
-
-                if (selectedOptions[type] === value) {
-                    selectedOptions[type] = null;
-                } else {
-                    selectedOptions[type] = value;
-                    btn.classList.add('selected');
-                }
-            });
         });
 
         tags.forEach(tag => {
@@ -4571,44 +4973,12 @@
             });
         });
 
-        function buildContext() {
-            let parts = [];
-            const userContext = contextInput.value.trim();
-
-            if (userContext) parts.push(userContext);
-            
-            const servingsValue = servingsInput.value.trim();
-            if (servingsValue) {
-                const numPeople = parseInt(servingsValue);
-                if (!isNaN(numPeople) && numPeople > 0) {
-                    parts.push(`Cooking for ${numPeople} ${numPeople === 1 ? 'person' : 'people'}`);
-                }
-            }
-            
-            if (selectedOptions.meal) parts.push(`I want ${selectedOptions.meal}`);
-            
-            const dietaryValue = dietaryInput.value.trim();
-            if (dietaryValue) {
-                parts.push(`Dietary restrictions: ${dietaryValue}`);
-            }
-            
-            if (selectedOptions.time) parts.push(`${selectedOptions.time} recipes`);
-            
-            const cuisineValue = cuisineInput.value.trim();
-            if (cuisineValue) {
-                parts.push(`${cuisineValue} cuisine style`);
-            }
-
-            return parts.join('. ');
-        }
-
+        // Quick Mode generate
         generateBtn.addEventListener('click', async () => {
-            const ingredients = isScanMode ? scannedIngredients : ingredientsInput.value.trim();
-            const context = buildContext();
-            const budget = budgetInput.value.trim();
+            const ingredients = ingredientsInput.value.trim();
 
-            if (!ingredients && !context) {
-                showError('Please enter some ingredients or describe what you need!');
+            if (!ingredients) {
+                showError('Please enter some ingredients or scan your pantry!');
                 return;
             }
 
@@ -4624,9 +4994,9 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        ingredients: ingredients || 'common pantry ingredients',
-                        context,
-                        budget: budget ? `$${budget}` : ''
+                        ingredients: ingredients,
+                        context: '',
+                        budget: ''
                     })
                 });
 
@@ -4646,7 +5016,6 @@
 
                     if (data.recipeNames && data.recipeNames.length > 0) {
                         loadRecipeImages(data.recipeNames);
-
                         reviewsSection.style.display = 'block';
                         reviewsLoading.classList.add('show');
                         reviewsGrid.innerHTML = '';
@@ -4665,6 +5034,90 @@
                 loading.classList.remove('show');
             }
         });
+
+        // Plan Mode generate
+        if (planGenerateBtn) {
+            planGenerateBtn.addEventListener('click', async () => {
+                const ingredients = planIngredientsTextarea ? planIngredientsTextarea.value.trim() : '';
+                if (!ingredients) {
+                    showError('Please take a photo of your groceries first so we can identify ingredients!');
+                    return;
+                }
+
+                const selectedMeals = [];
+                document.querySelectorAll('.plan-meal-toggle.active').forEach(btn => {
+                    selectedMeals.push(btn.dataset.meal);
+                });
+                if (selectedMeals.length === 0) {
+                    showError('Please select at least one meal type (breakfast, lunch, or dinner).');
+                    return;
+                }
+
+                const activeDayBtn = document.querySelector('.plan-time-btn.active');
+                const days = activeDayBtn ? parseInt(activeDayBtn.dataset.days) : 5;
+                const dietary = document.getElementById('planDietary') ? document.getElementById('planDietary').value.trim() : '';
+                const people = document.getElementById('planPeople') ? document.getElementById('planPeople').value.trim() : '';
+
+                planGenerateBtn.disabled = true;
+                loading.classList.add('show');
+                result.classList.remove('show');
+                errorDiv.classList.remove('show');
+                recipeImages.innerHTML = '';
+                reviewsGrid.innerHTML = '';
+
+                let contextParts = [];
+                contextParts.push(`Create a ${days}-day meal plan`);
+                contextParts.push(`Meals to plan: ${selectedMeals.join(', ')}`);
+                if (people) contextParts.push(`Cooking for ${people} people`);
+                if (dietary) contextParts.push(`Dietary restrictions: ${dietary}`);
+                contextParts.push('Organize the plan by day. For each day, list the meals with recipes, ingredients from the available list, and brief instructions.');
+
+                try {
+                    const response = await fetch('/api/generate-recipe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ingredients: ingredients,
+                            context: contextParts.join('. '),
+                            budget: ''
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        const formattedRecipe = formatRecipe(data.recipe);
+                        recipeContent.innerHTML = formattedRecipe;
+
+                        recipeContent.querySelectorAll('.inline-recipe-image').forEach(img => {
+                            img.onerror = function() {
+                                this.src = `https://source.unsplash.com/600x400/?food`;
+                            };
+                        });
+
+                        if (data.recipeNames && data.recipeNames.length > 0) {
+                            loadRecipeImages(data.recipeNames);
+                            reviewsSection.style.display = 'block';
+                            reviewsLoading.classList.add('show');
+                            reviewsGrid.innerHTML = '';
+                            fetchRealReviews(data.recipeNames);
+                        } else {
+                            reviewsSection.style.display = 'none';
+                        }
+
+                        result.classList.add('show');
+                        updateChatContext(data.recipe);
+                    }
+                } catch (error) {
+                    showError('Failed to connect to the server. Please try again.');
+                } finally {
+                    planGenerateBtn.disabled = false;
+                    loading.classList.remove('show');
+                }
+            });
+        }
 
         async function loadRecipeImages(recipeNames) {
             recipeImages.innerHTML = '';
