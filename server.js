@@ -293,7 +293,7 @@ app.use(passport.session());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Log all POST requests for debugging
 app.use((req, res, next) => {
@@ -2010,6 +2010,10 @@ if (require.main === module && !isVercel && !isDefinitelyVercelAtTopLevel) {
     console.log(`🔍 Server is listening for requests...\n`);
 }
 
-// Export app for Vercel serverless functions
+// Fallback: serve index.html for root and unmatched routes (SPA support on Vercel)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
+// Export app for Vercel serverless functions
 module.exports = app;
