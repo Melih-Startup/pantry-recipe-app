@@ -489,6 +489,17 @@ function isValidEmail(email) {
     return emailRegex.test(email);
 }
 
+// Helper function to check password strength
+function isPasswordSecure(password) {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+}
+
 // Helper function to generate 6-digit verification code
 function generateVerificationCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -553,8 +564,10 @@ app.post('/api/auth/signup', async (req, res) => {
             return res.status(400).json({ error: 'Invalid email format' });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+        if (!isPasswordSecure(password)) {
+            return res.status(400).json({
+                error: 'Password is not secure enough. It must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.'
+            });
         }
 
         // Check if user already exists
@@ -589,8 +602,8 @@ app.post('/api/auth/signup', async (req, res) => {
                 // Create the user account
                 db.run(
                     'INSERT INTO users (email, password, name, provider, provider_id, is_admin, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [email.toLowerCase(), hashedPassword, name || null, null, null, isAdmin ? 1 : 0, 1],
-                    function(err) {
+                    [email.toLowerCase(), hashedPassword, name || null, null, null, isAdmin ? 1 : 0, 0],
+                    async function(err) {
                         if (err) {
                             console.error('Error creating user:', err);
                             return sendDbError(res, err);
@@ -598,15 +611,91 @@ app.post('/api/auth/signup', async (req, res) => {
 
                         console.log(`✅ Account created: ${email.toLowerCase()} ${isAdmin ? '(Admin)' : '(User)'}`);
 
-                        res.json({
-                            message: 'Account created successfully. Please login to continue.'
-                        });
+                        try {
+                            const code = generateVerificationCode();
+                            const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+                            if (isPostgresDb) {
+                                await pgRunAsync('INSERT INTO verification_codes (email, code, expires_at) VALUES ($1, $2, $3)', [email.toLowerCase(), code, expiresAt]);
+                            } else {
+                                await sqliteRunAsync('INSERT INTO verification_codes (email, code, expires_at) VALUES (?, ?, ?)', [email.toLowerCase(), code, expiresAt]);
+                            }
+
+                            await sendVerificationEmail(email.toLowerCase(), code);
+
+                            res.json({
+                                message: 'Account created successfully. We have sent a verification code to your email. Please verify your account before logging in.'
+                            });
+                        } catch (emailError) {
+                            console.error('Verification email error:', emailError);
+                            res.json({
+                                message: 'Account created successfully, but we encountered an error sending the verification email. Please try logging in and requesting a new code.'
+                            });
+                        }
                     }
                 );
             });
         });
     } catch (error) {
         console.error('Signup error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Endpoint to verify email with 6-digit code
+app.post('/api/auth/verify', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+
+        if (!email || !code) {
+            return res.status(400).json({ error: 'Email and verification code are required' });
+        }
+
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        const emailLower = email.toLowerCase();
+
+        // Find valid, unused, non-expired code
+        const query = isPostgresDb
+            ? 'SELECT id FROM verification_codes WHERE email = $1 AND code = $2 AND used = 0 AND expires_at > CURRENT_TIMESTAMP'
+            : 'SELECT id FROM verification_codes WHERE email = ? AND code = ? AND used = 0 AND expires_at > CURRENT_TIMESTAMP';
+
+        const params = [emailLower, code];
+
+        db.get(query, params, async (err, row) => {
+            if (err) {
+                return sendDbError(res, err);
+            }
+
+            if (!row) {
+                return res.status(400).json({ error: 'Invalid or expired verification code' });
+            }
+
+            try {
+                // 1. Mark code as used
+                const updateCodeQuery = isPostgresDb
+                    ? 'UPDATE verification_codes SET used = 1 WHERE id = $1'
+                    : 'UPDATE verification_codes SET used = 1 WHERE id = ?';
+
+                await (isPostgresDb ? pgRunAsync(updateCodeQuery, [row.id]) : sqliteRunAsync(updateCodeQuery, [row.id]));
+
+                // 2. Verify user
+                const verifyUserQuery = isPostgresDb
+                    ? 'UPDATE users SET email_verified = 1 WHERE email = $1'
+                    : 'UPDATE users SET email_verified = 1 WHERE email = ?';
+
+                await (isPostgresDb ? pgRunAsync(verifyUserQuery, [emailLower]) : sqliteRunAsync(verifyUserQuery, [emailLower]));
+
+                res.json({ message: 'Email verified successfully. You can now login.' });
+            } catch (dbError) {
+                console.error('Verification update error:', dbError);
+                res.status(500).json({ error: 'An error occurred while verifying your account.' });
+            }
+        });
+    } catch (error) {
+        console.error('Verify email error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -645,6 +734,10 @@ app.post('/api/auth/login', async (req, res) => {
 
             if (!isValidPassword) {
                 return res.status(401).json({ error: 'Invalid email or password' });
+            }
+
+            if (!user.email_verified) {
+                return res.status(403).json({ error: 'Your email is not verified. Please check your inbox for the verification code.' });
             }
 
             // Generate JWT token
