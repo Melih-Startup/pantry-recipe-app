@@ -845,6 +845,44 @@
         }
         .auth-input:focus { border-color: var(--gold); }
         .auth-input::placeholder { color: rgba(255,255,255,0.2); }
+        .auth-input-wrap {
+            position: relative;
+            display: block;
+        }
+        .auth-input-wrap .auth-input {
+            padding-right: 4.5rem;
+            box-sizing: border-box;
+        }
+        .auth-password-toggle {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--gold);
+            cursor: pointer;
+            padding: 10px 12px;
+            border-radius: 6px;
+            transition: color 0.2s ease, background 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-password-toggle:hover {
+            color: var(--gold-light);
+            background: rgba(201,169,110,0.12);
+        }
+        .auth-password-toggle svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            fill: none;
+            flex-shrink: 0;
+        }
+        .auth-password-toggle .auth-eye-off { display: none; }
+        .auth-password-toggle.is-visible .auth-eye-on { display: none; }
+        .auth-password-toggle.is-visible .auth-eye-off { display: block; }
         .auth-btn {
             width: 100%;
             padding: 16px;
@@ -1461,7 +1499,13 @@
                 </div>
                 <div class="auth-input-group">
                     <label>Password</label>
-                    <input type="password" class="auth-input" id="loginPassword" placeholder="Enter your password" required>
+                    <div class="auth-input-wrap">
+                        <input type="password" class="auth-input" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="auth-password-toggle" aria-label="Show password" onclick="togglePasswordVisibility('loginPassword', this)">
+                            <svg class="auth-eye-on" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="auth-eye-off" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="auth-btn" id="loginSubmitBtn">Sign In</button>
             </form>
@@ -1493,11 +1537,23 @@
                 </div>
                 <div class="auth-input-group">
                     <label>Password</label>
-                    <input type="password" class="auth-input" id="signupPassword" placeholder="Create a password" required minlength="6">
+                    <div class="auth-input-wrap">
+                        <input type="password" class="auth-input" id="signupPassword" placeholder="Create a password" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="auth-password-toggle" aria-label="Show password" onclick="togglePasswordVisibility('signupPassword', this)">
+                            <svg class="auth-eye-on" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="auth-eye-off" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="auth-input-group">
                     <label>Confirm Password</label>
-                    <input type="password" class="auth-input" id="signupPasswordConfirm" placeholder="Confirm your password" required>
+                    <div class="auth-input-wrap">
+                        <input type="password" class="auth-input" id="signupPasswordConfirm" placeholder="Confirm your password" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="auth-password-toggle" aria-label="Show password" onclick="togglePasswordVisibility('signupPasswordConfirm', this)">
+                            <svg class="auth-eye-on" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="auth-eye-off" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="auth-btn" id="signupSubmitBtn">Create Account</button>
             </form>
@@ -1985,6 +2041,16 @@
             }
         }
 
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input || !btn) return;
+            const isHidden = input.getAttribute('type') === 'password';
+            input.setAttribute('type', isHidden ? 'text' : 'password');
+            const nowVisible = input.getAttribute('type') === 'text';
+            btn.classList.toggle('is-visible', nowVisible);
+            btn.setAttribute('aria-label', nowVisible ? 'Hide password' : 'Show password');
+        }
+
         function openAuth(type) {
             document.getElementById(type === 'login' ? 'loginModal' : 'signupModal').classList.add('show');
         }
@@ -1994,6 +2060,15 @@
             modal.classList.remove('show');
             modal.querySelectorAll('.auth-error').forEach(e => { e.classList.remove('show'); e.textContent = ''; });
             modal.querySelectorAll('.auth-input').forEach(i => { i.value = ''; });
+            modal.querySelectorAll('.auth-input').forEach(i => {
+                if (i.id !== 'loginPassword' && i.id !== 'signupPassword' && i.id !== 'signupPasswordConfirm') return;
+                i.setAttribute('type', 'password');
+                const btn = i.closest('.auth-input-wrap')?.querySelector('.auth-password-toggle');
+                if (btn) {
+                    btn.classList.remove('is-visible');
+                    btn.setAttribute('aria-label', 'Show password');
+                }
+            });
         }
 
         function switchAuth(showId) {
@@ -2052,6 +2127,7 @@
             if (pw !== pwConfirm) {
                 errEl.textContent = 'Passwords do not match';
                 errEl.classList.add('show');
+                document.getElementById('signupPasswordConfirm').focus();
                 return;
             }
             btn.disabled = true;
@@ -2063,7 +2139,8 @@
                     body: JSON.stringify({
                         name: document.getElementById('signupName').value,
                         email: document.getElementById('signupEmail').value,
-                        password: pw
+                        password: pw,
+                        passwordConfirm: pwConfirm
                     })
                 });
                 const data = await res.json();
@@ -2072,6 +2149,13 @@
                     authToken = data.token;
                     currentUser = data.user;
                     window.location.href = '/dashboard.html';
+                } else if (res.ok) {
+                    closeAuth('signupModal');
+                    openAuth('login');
+                    const loginErr = document.getElementById('loginError');
+                    loginErr.textContent = data.message || 'Account created. Please sign in.';
+                    loginErr.classList.add('show');
+                    document.getElementById('loginEmail').value = document.getElementById('signupEmail').value.trim();
                 } else {
                     errEl.textContent = data.error || 'Signup failed';
                     errEl.classList.add('show');
@@ -2104,8 +2188,17 @@
         // Check auth on load
         checkAuthStatus();
 
-        // Handle OAuth callback token
+        // Handle OAuth callback token and errors
         const urlParams = new URLSearchParams(window.location.search);
+        const oauthErr = urlParams.get('error');
+        if (oauthErr === 'oauth_not_configured' || oauthErr === 'oauth_failed') {
+            const raw = urlParams.get('message');
+            const text = raw ? decodeURIComponent(raw) : (oauthErr === 'oauth_not_configured'
+                ? 'Social login is not configured on the server. Check OAuth keys in .env.'
+                : 'Sign-in was cancelled or failed.');
+            alert(text);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
         if (urlParams.get('token')) {
             localStorage.setItem('authToken', urlParams.get('token'));
             window.location.href = '/dashboard.html';

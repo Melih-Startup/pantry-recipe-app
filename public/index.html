@@ -2278,8 +2278,17 @@
         // Check auth on load
         checkAuthStatus();
 
-        // Handle OAuth callback token
+        // Handle OAuth callback token and errors
         const urlParams = new URLSearchParams(window.location.search);
+        const oauthErr = urlParams.get('error');
+        if (oauthErr === 'oauth_not_configured' || oauthErr === 'oauth_failed') {
+            const raw = urlParams.get('message');
+            const text = raw ? decodeURIComponent(raw) : (oauthErr === 'oauth_not_configured'
+                ? 'Social login is not configured on the server. Check GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env.'
+                : 'Sign-in with Google was cancelled or failed.');
+            alert(text);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
         if (urlParams.get('token')) {
             localStorage.setItem('authToken', urlParams.get('token'));
             window.location.href = '/dashboard.html';

@@ -1,5 +1,5 @@
 // Database adapter that supports both SQLite (local) and Supabase/Postgres (Vercel)
-const sqlite3 = require('sqlite3').verbose();
+// Do not require sqlite3 at top level: native bindings break Vercel lambdas when Postgres is used.
 const path = require('path');
 
 let db = null;
@@ -27,7 +27,7 @@ if (usePostgres) {
     const pool = new Pool({
         connectionString,
         max: isVercel ? 1 : 10,
-        connectionTimeoutMillis: isVercel ? 20000 : 10000,
+        connectionTimeoutMillis: isVercel ? 6000 : 10000,
         idleTimeoutMillis: isVercel ? 60000 : 30000,
         // Managed Postgres (Supabase, Neon, Railway, etc.) almost always requires TLS
         ssl: isLocalPg ? false : { rejectUnauthorized: false }
@@ -158,6 +158,7 @@ if (usePostgres) {
 } else {
     // Local development - use SQLite
     dbType = 'sqlite';
+    const sqlite3 = require('sqlite3').verbose();
     const dbPath = path.join(__dirname, 'pantry_pal.db');
     db = new sqlite3.Database(dbPath, (err) => {
         if (err) {

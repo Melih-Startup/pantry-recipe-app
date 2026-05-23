@@ -1,7 +1,9 @@
 // Force fresh deployment - Vercel cache fix v3
 // Deployment trigger - certificate generation fix applied with compatibility layer
 // Version: 2025-01-24-v3-compatibility-layer
-require('dotenv').config(); // Load environment variables from .env file
+if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
+    require('dotenv').config();
+}
 const express = require('express');
 const https = require('https');
 const http = require('http');
@@ -9,16 +11,37 @@ const fs = require('fs');
 const os = require('os');
 // Database adapter (supports SQLite local, Supabase/Postgres on Vercel)
 const db = require('./db-adapter');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+const { promisify } = require('util');
+const bcryptHash = promisify(bcrypt.hash);
+const bcryptCompare = promisify(bcrypt.compare);
 const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const path = require('path');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
-const GitHubStrategy = require('passport-github2').Strategy;
 const nodemailer = require('nodemailer');
 const app = express();
+// Behind Vercel/proxies, OAuth must use the public https URL (not http) for redirect_uri
+if (process.env.VERCEL === '1' || process.env.VERCEL_ENV) {
+    app.set('trust proxy', 1);
+}
+
+// Resolve `public/` for static assets (serverless layout: __dirname vs cwd can differ)
+const publicDir = (() => {
+    const candidates = [path.join(__dirname, 'public'), path.join(process.cwd(), 'public')];
+    for (const dir of candidates) {
+        try {
+            if (fs.existsSync(path.join(dir, 'index.html'))) return dir;
+        } catch (e) {
+            // ignore
+        }
+    }
+    return path.join(__dirname, 'public');
+})();
+
+// GET / and /api/health are served by small functions in api/ (see vercel.json) for fast cold starts
+app.use(express.static(publicDir));
+
 const PORT = 3000;
 const HTTPS_PORT = 3443;
 const isPostgresDb = Boolean(db && db.pool);
@@ -212,15 +235,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'pantry-pal-secret-key-change-in-pr
 // OAuth configuration (set via environment variables or use defaults for development)
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    console.warn('⚠️  Google sign-in is off until you set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env (then restart).');
+}
 const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || '';
 const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET || '';
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
-
-// Admin configuration (for testing - only admin email can sign up)
-// If ADMIN_EMAIL is not set, the first email to sign up will become the admin
-// To restrict to a specific email, set ADMIN_EMAIL environment variable or change the default below
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null; // Set to null to allow first email, or set specific email
+if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+    console.warn('⚠️  GitHub sign-in is off until you set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in .env (then restart).');
+}
 
 // Email configuration for verification codes
 const EMAIL_USER = process.env.EMAIL_USER || '';
@@ -317,7 +341,6 @@ app.use(passport.session());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Log all POST requests for debugging
 app.use((req, res, next) => {
@@ -338,66 +361,44 @@ passport.deserializeUser((id, done) => {
     });
 });
 
-// Helper function to create or find OAuth user - Admin only for testing
+// Helper function to create or find OAuth user
 function findOrCreateOAuthUser(profile, provider, callback) {
     const providerId = profile.id || profile.sub || profile.id.toString();
     const email = profile.emails?.[0]?.value || profile.email || `${providerId}@${provider}.local`;
     const name = profile.displayName || profile.name?.displayName || profile.name?.givenName || profile.username || 'User';
 
-        // Check if admin account already exists
-        db.get('SELECT id FROM users WHERE is_admin = 1', (err, adminExists) => {
+    db.get('SELECT * FROM users WHERE provider = ? AND provider_id = ?', [provider, providerId], (err, user) => {
+        if (err) return callback(err, null);
+
+        if (user) {
+            return callback(null, user);
+        }
+
+        db.get('SELECT * FROM users WHERE email = ?', [email], (err, existingUser) => {
             if (err) return callback(err, null);
 
-            // If admin exists, prevent OAuth signups for non-admin emails
-            if (adminExists) {
-                // Only allow admin email to login via OAuth (if ADMIN_EMAIL is set)
-                if (ADMIN_EMAIL && email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-                    return callback(new Error('OAuth signups are restricted. Only the admin email can sign in for testing purposes.'), null);
-                }
-            } else {
-                // If no admin exists and ADMIN_EMAIL is set, only allow that email
-                if (ADMIN_EMAIL && email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-                    return callback(new Error('OAuth signups are restricted. Only the admin email can create an account for testing purposes.'), null);
-                }
-            }
-
-        // Check if user exists by provider_id
-        db.get('SELECT * FROM users WHERE provider = ? AND provider_id = ?', [provider, providerId], (err, user) => {
-            if (err) return callback(err, null);
-
-            if (user) {
-                return callback(null, user);
-            }
-
-            // Check if email already exists
-            db.get('SELECT * FROM users WHERE email = ?', [email], (err, existingUser) => {
-                if (err) return callback(err, null);
-
-                // First user becomes admin, or if ADMIN_EMAIL is set, only that email becomes admin
-                const isAdmin = !ADMIN_EMAIL || email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+            db.get('SELECT id FROM users WHERE is_admin = 1', (err2, adminRow) => {
+                if (err2) return callback(err2, null);
+                const hasAdmin = !!adminRow;
+                const isAdmin = !hasAdmin;
 
                 if (existingUser) {
-                    // Update existing user with provider info and admin status
                     db.run(
-                        'UPDATE users SET provider = ?, provider_id = ?, name = COALESCE(?, name), is_admin = ? WHERE email = ?',
-                        [provider, providerId, name, isAdmin ? 1 : 0, email],
-                        function(err) {
-                            if (err) return callback(err, null);
+                        'UPDATE users SET provider = ?, provider_id = ?, name = COALESCE(?, name) WHERE email = ?',
+                        [provider, providerId, name, email],
+                        function(err3) {
+                            if (err3) return callback(err3, null);
                             db.get('SELECT * FROM users WHERE email = ?', [email], callback);
                         }
                     );
                 } else {
-                    // Create new admin user (only admin email can sign up)
                     db.run(
                         'INSERT INTO users (email, password, name, provider, provider_id, is_admin) VALUES (?, ?, ?, ?, ?, ?)',
                         [email, null, name, provider, providerId, isAdmin ? 1 : 0],
-                        function(err, result) {
-                            if (err) return callback(err, null);
-                            // For Postgres, result.rows[0].id contains the inserted ID
-                            // For SQLite, result.lastID contains it
+                        function(err3, result) {
+                            if (err3) return callback(err3, null);
                             const insertedId = result?.rows?.[0]?.id || result?.lastID;
                             if (!insertedId) {
-                                // Fallback: query by email
                                 db.get('SELECT * FROM users WHERE email = ?', [email], callback);
                             } else {
                                 db.get('SELECT * FROM users WHERE id = ?', [insertedId], callback);
@@ -412,6 +413,7 @@ function findOrCreateOAuthUser(profile, provider, callback) {
 
 // Google OAuth Strategy
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+    const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
     passport.use(new GoogleStrategy({
         clientID: GOOGLE_CLIENT_ID,
         clientSecret: GOOGLE_CLIENT_SECRET,
@@ -429,6 +431,7 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
 
 // Facebook OAuth Strategy
 if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
+    const FacebookStrategy = require('passport-facebook').Strategy;
     passport.use(new FacebookStrategy({
         clientID: FACEBOOK_APP_ID,
         clientSecret: FACEBOOK_APP_SECRET,
@@ -447,6 +450,7 @@ if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
 
 // GitHub OAuth Strategy
 if (GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET) {
+    const GitHubStrategy = require('passport-github2');
     passport.use(new GitHubStrategy({
         clientID: GITHUB_CLIENT_ID,
         clientSecret: GITHUB_CLIENT_SECRET,
@@ -572,20 +576,15 @@ app.post('/api/auth/signup', async (req, res) => {
                     return sendDbError(res, err);
                 }
 
-                // Determine if this user should be admin:
-                // - If no admin exists yet AND (ADMIN_EMAIL is not set OR this email matches ADMIN_EMAIL)
-                // - Otherwise, create as regular user
+                // First account in the database becomes admin; later signups are regular users
                 let isAdmin = false;
                 if (!adminExists) {
-                    // First user becomes admin, or if ADMIN_EMAIL is set, only that email becomes admin
-                    if (!ADMIN_EMAIL || email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-                        isAdmin = true;
-                    }
+                    isAdmin = true;
                 }
 
                 // Hash password
                 const saltRounds = 10;
-                const hashedPassword = await bcrypt.hash(password, saltRounds);
+                const hashedPassword = await bcryptHash(password, saltRounds);
 
                 // Create the user account
                 db.run(
@@ -642,7 +641,7 @@ app.post('/api/auth/login', async (req, res) => {
             }
 
             // Verify password
-            const isValidPassword = await bcrypt.compare(password, user.password);
+            const isValidPassword = await bcryptCompare(password, user.password);
 
             if (!isValidPassword) {
                 return res.status(401).json({ error: 'Invalid email or password' });
@@ -742,6 +741,16 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
             res.redirect(`/?token=${token}&provider=google`);
         }
     );
+} else {
+    const googleOAuthMsg = encodeURIComponent(
+        'Google login is not configured. In Google Cloud Console create an OAuth Web client, then add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your .env file. Redirect URI must include http://localhost:3000/api/auth/google/callback (and your production URL if deployed). Restart the server after saving .env.'
+    );
+    app.get('/api/auth/google', (req, res) => {
+        res.redirect(`/?error=oauth_not_configured&message=${googleOAuthMsg}`);
+    });
+    app.get('/api/auth/google/callback', (req, res) => {
+        res.redirect(`/?error=oauth_not_configured&message=${googleOAuthMsg}`);
+    });
 }
 
 // Facebook OAuth
@@ -818,6 +827,16 @@ if (GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET) {
             res.redirect(`/?token=${token}&provider=github`);
         }
     );
+} else {
+    const githubOAuthMsg = encodeURIComponent(
+        'GitHub login is not configured. Add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to your .env file. Callback URL: http://localhost:3000/api/auth/github/callback. Restart the server after saving.'
+    );
+    app.get('/api/auth/github', (req, res) => {
+        res.redirect(`/?error=oauth_not_configured&message=${githubOAuthMsg}`);
+    });
+    app.get('/api/auth/github/callback', (req, res) => {
+        res.redirect(`/?error=oauth_not_configured&message=${githubOAuthMsg}`);
+    });
 }
 
 // Get OAuth provider status
@@ -2022,23 +2041,11 @@ if (require.main === module && !isVercel && !isDefinitelyVercelAtTopLevel) {
         console.log(`   Please run generate-cert.bat or generate-cert.ps1 to create certificates.\n`);
     }
 
-    console.log(`🔐 ADMIN MODE ENABLED (Testing)`);
-    if (ADMIN_EMAIL) {
-        console.log(`   Only this email can sign up: ${ADMIN_EMAIL}`);
-        console.log(`   Set ADMIN_EMAIL environment variable to change it.\n`);
-    } else {
-        console.log(`   First email to sign up will become the admin account.`);
-        console.log(`   Set ADMIN_EMAIL environment variable to restrict to a specific email.\n`);
-    }
+    console.log(`🔐 Admin: the first account created (email signup or OAuth) becomes admin.\n`);
     console.log(`📧 Email Status: ${emailTransporter ? '✅ Configured' : '⚠️  Not configured (Development Mode - codes will show in console)'}\n`);
     console.log(`🖼️  Recipe Images: ${PEXELS_API_KEY ? '✅ Pexels API enabled (dish-specific images)' : '⚠️  Using TheMealDB only. Add PEXELS_API_KEY for better images (free at pexels.com/api)'}\n`);
     console.log(`🔍 Server is listening for requests...\n`);
 }
-
-// Fallback: serve index.html for root and unmatched routes (SPA support on Vercel)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
 // Export app for Vercel serverless functions
 module.exports = app;
